@@ -1,0 +1,58 @@
+<%- include('../../partials/admin-header') %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Services</h1>
+  <a href="/admin/services/new" class="btn btn-primary">Create New Service</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Active</th>
+          <th>Order</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (services && services.length > 0) { %>
+          <% services.forEach(service => { %>
+            <tr>
+              <td><%= service.name %></td>
+              <td>
+                <span class="badge bg-<%= service.isActive ? 'success' : 'secondary' %>">
+                  <%= service.isActive ? 'Active' : 'Inactive' %>
+                </span>
+              </td>
+              <td><%= service.displayOrder %></td>
+              <td><%= new Date(service.createdAt).toLocaleDateString() %></td>
+              <td>
+                <a href="/admin/services/<%= service._id %>/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+                <form method="POST" action="/admin/services/<%= service._id %>/delete" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this service?');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        <% } else { %>
+          <tr>
+            <td colspan="5" class="text-center text-muted">No services found. <a href="/admin/services/new">Create one</a></td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../../partials/admin-footer') %>
+

@@ -1,0 +1,268 @@
+<%- include('../../partials/admin-header') %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<h1 class="mb-4">Media Library</h1>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h5>Upload Images</h5>
+  </div>
+  <div class="card-body">
+    <ul class="nav nav-tabs mb-3" id="uploadTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="single-tab" data-bs-toggle="tab" data-bs-target="#single" type="button">Single Upload</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="multiple-tab" data-bs-toggle="tab" data-bs-target="#multiple" type="button">Multiple Upload</button>
+      </li>
+    </ul>
+    <div class="tab-content" id="uploadTabsContent">
+      <div class="tab-pane fade show active" id="single" role="tabpanel">
+        <form method="POST" action="/admin/media/upload" enctype="multipart/form-data">
+          <div class="row">
+            <div class="col-md-4">
+              <input type="file" class="form-control" name="image" accept="image/*" required>
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" name="title" placeholder="Image Title">
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" name="altText" placeholder="Alt Text">
+            </div>
+            <div class="col-md-2">
+              <button type="submit" class="btn btn-primary w-100">Upload</button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="tab-pane fade" id="multiple" role="tabpanel">
+        <form method="POST" action="/admin/media/upload-multiple" enctype="multipart/form-data" id="multipleUploadForm">
+          <div class="row mb-3">
+            <div class="col-md-8">
+              <input type="file" class="form-control" name="images" id="multipleImagesInput" accept="image/*" multiple required>
+              <small class="text-muted">You can select multiple images at once (up to 20)</small>
+            </div>
+            <div class="col-md-4">
+              <select class="form-select" name="category" id="imageCategory">
+                <option value="general">General</option>
+                <option value="project">Project</option>
+                <option value="service">Service</option>
+                <option value="product">Product</option>
+                <option value="hero">Hero</option>
+                <option value="portfolio">Portfolio</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- Image Previews -->
+          <div id="imagePreviews" class="row g-3 mb-3" style="display: none;"></div>
+          
+          <!-- Progress Bar -->
+          <div id="uploadProgress" class="mb-3" style="display: none;">
+            <div class="progress" style="height: 25px;">
+              <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+            </div>
+            <small class="text-muted mt-1 d-block">Uploading images...</small>
+          </div>
+          
+          <button type="submit" class="btn btn-primary" id="uploadBtn">Upload All Images</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <% if (images && images.length > 0) { %>
+    <% images.forEach(image => { %>
+      <div class="col-md-3 mb-4">
+        <div class="card">
+          <img src="<%= image.thumbnailPath %>" class="card-img-top" alt="<%= image.altText %>">
+          <div class="card-body">
+            <h6 class="card-title"><%= image.title || image.filename %></h6>
+            <p class="card-text small text-muted">
+              <strong>Alt:</strong> <%= image.altText || 'None' %><br>
+              <strong>Category:</strong> <%= image.category %><br>
+              <strong>Date:</strong> <%= new Date(image.createdAt).toLocaleDateString() %>
+            </p>
+            <div class="btn-group btn-group-sm w-100" role="group">
+              <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal<%= image._id %>">Edit</button>
+              <form method="POST" action="/admin/media/<%= image._id %>/delete" class="d-inline" onsubmit="return confirm('Are you sure?');">
+                <button type="submit" class="btn btn-outline-danger">Delete</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Modal -->
+      <div class="modal fade" id="editModal<%= image._id %>" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form method="POST" action="/admin/media/<%= image._id %>">
+              <div class="modal-header">
+                <h5 class="modal-title">Edit Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <img src="<%= image.mediumPath %>" class="img-fluid mb-3" alt="<%= image.altText %>">
+                <div class="mb-3">
+                  <label for="title<%= image._id %>" class="form-label">Title</label>
+                  <input type="text" class="form-control" id="title<%= image._id %>" name="title" value="<%= image.title || '' %>">
+                </div>
+                <div class="mb-3">
+                  <label for="altText<%= image._id %>" class="form-label">Alt Text</label>
+                  <input type="text" class="form-control" id="altText<%= image._id %>" name="altText" value="<%= image.altText || '' %>">
+                </div>
+                <div class="mb-3">
+                  <label for="category<%= image._id %>" class="form-label">Category</label>
+                  <select class="form-select" id="category<%= image._id %>" name="category">
+                    <option value="general" <%= image.category === 'general' ? 'selected' : '' %>>General</option>
+                    <option value="project" <%= image.category === 'project' ? 'selected' : '' %>>Project</option>
+                    <option value="service" <%= image.category === 'service' ? 'selected' : '' %>>Service</option>
+                    <option value="hero" <%= image.category === 'hero' ? 'selected' : '' %>>Hero</option>
+                    <option value="portfolio" <%= image.category === 'portfolio' ? 'selected' : '' %>>Portfolio</option>
+                  </select>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  <% } else { %>
+    <div class="col-12">
+      <p class="text-center text-muted">No images in media library. Upload one above.</p>
+    </div>
+  <% } %>
+</div>
+
+<script>
+  // Image preview functionality
+  const multipleImagesInput = document.getElementById('multipleImagesInput');
+  const imagePreviews = document.getElementById('imagePreviews');
+  const uploadForm = document.getElementById('multipleUploadForm');
+  const uploadProgress = document.getElementById('uploadProgress');
+  const uploadBtn = document.getElementById('uploadBtn');
+  
+  if (multipleImagesInput) {
+    multipleImagesInput.addEventListener('change', function(e) {
+      const files = e.target.files;
+      imagePreviews.innerHTML = '';
+      
+      if (files.length > 0) {
+        imagePreviews.style.display = 'flex';
+        
+        Array.from(files).forEach((file, index) => {
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const col = document.createElement('div');
+              col.className = 'col-md-3 col-sm-4 col-6';
+              col.innerHTML = `
+                <div class="card">
+                  <img src="${e.target.result}" class="card-img-top" alt="Preview" style="height: 150px; object-fit: cover;">
+                  <div class="card-body p-2">
+                    <small class="text-muted d-block" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</small>
+                    <small class="text-muted">${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                  </div>
+                </div>
+              `;
+              imagePreviews.appendChild(col);
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      } else {
+        imagePreviews.style.display = 'none';
+      }
+    });
+    
+    // Handle form submission with progress
+    if (uploadForm) {
+      uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(uploadForm);
+        const files = multipleImagesInput.files;
+        
+        if (files.length === 0) {
+          alert('Please select at least one image');
+          return;
+        }
+        
+        // Show progress bar
+        uploadProgress.style.display = 'block';
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
+        
+        const xhr = new XMLHttpRequest();
+        
+        // Track upload progress
+        xhr.upload.addEventListener('progress', function(e) {
+          if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            const progressBar = uploadProgress.querySelector('.progress-bar');
+            progressBar.style.width = percentComplete + '%';
+            progressBar.textContent = Math.round(percentComplete) + '%';
+          }
+        });
+        
+        // Handle completion
+        xhr.addEventListener('load', function() {
+          if (xhr.status === 200) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              if (response.success) {
+                // Success - redirect to media page
+                window.location.href = '/admin/media';
+              } else {
+                alert(response.message || 'Upload failed. Please try again.');
+                uploadProgress.style.display = 'none';
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload All Images';
+              }
+            } catch (e) {
+              // If response is not JSON, assume redirect
+              window.location.href = '/admin/media';
+            }
+          } else {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              alert(response.message || 'Upload failed. Please try again.');
+            } catch (e) {
+              alert('Upload failed. Please try again.');
+            }
+            uploadProgress.style.display = 'none';
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload All Images';
+          }
+        });
+        
+        // Handle errors
+        xhr.addEventListener('error', function() {
+          alert('Upload error. Please try again.');
+          uploadProgress.style.display = 'none';
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = 'Upload All Images';
+        });
+        
+        xhr.open('POST', '/admin/media/upload-multiple');
+        xhr.send(formData);
+      });
+    }
+  }
+</script>
+
+<%- include('../../partials/admin-footer') %>
+

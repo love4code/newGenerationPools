@@ -1,0 +1,457 @@
+<%- include('../../partials/admin-header') %>
+<%- include('../../partials/image-selector-modal') %>
+
+<% if (typeof error !== 'undefined' && error.length > 0) { %>
+  <div class="alert alert-danger alert-dismissible fade show">
+    <%= error[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<h1 class="mb-4"><%= product ? 'Edit' : 'Create' %> Product</h1>
+
+<form method="POST" action="<%= product ? `/admin/products/${product._id}` : '/admin/products' %>">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="name" class="form-label">Product Name *</label>
+            <input type="text" class="form-control" id="name" name="name" value="<%= product ? product.name : (typeof formData !== 'undefined' && formData.name ? formData.name : '') %>" required>
+          </div>
+          <div class="mb-3">
+            <label for="shortDescription" class="form-label">Short Description</label>
+            <textarea class="form-control" id="shortDescription" name="shortDescription" rows="2"><%= product ? product.shortDescription : (typeof formData !== 'undefined' && formData.shortDescription ? formData.shortDescription : '') %></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Description *</label>
+            <textarea class="form-control" id="description" name="description" rows="10" required><%= product ? product.description : (typeof formData !== 'undefined' && formData.description ? formData.description : '') %></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="price" class="form-label">Price</label>
+                <input type="number" step="0.01" class="form-control" id="price" name="price" value="<%= product ? product.price : (typeof formData !== 'undefined' && formData.price ? formData.price : '0') %>">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="category" class="form-label">Category</label>
+                <input type="text" class="form-control" id="category" name="category" value="<%= product ? product.category : (typeof formData !== 'undefined' && formData.category ? formData.category : 'general') %>">
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Sizes</label>
+            <div class="size-selector-container">
+              <div class="selected-sizes mb-2" id="selectedSizes">
+                <!-- Selected sizes will appear here as tags -->
+                <% 
+                  const currentSizes = product ? (product.sizes || []) : (typeof formData !== 'undefined' && formData.sizes ? (Array.isArray(formData.sizes) ? formData.sizes : [formData.sizes]) : []);
+                  if (currentSizes.length > 0) {
+                    currentSizes.forEach(size => {
+                %>
+                  <span class="badge bg-primary size-tag me-2 mb-2" data-size="<%= size %>">
+                    <%= size %>
+                    <button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.65em;" aria-label="Remove"></button>
+                  </span>
+                <% 
+                    });
+                  }
+                %>
+              </div>
+              <div class="size-options mb-2">
+                <label class="form-label small text-muted">Click to select sizes:</label>
+                <div class="d-flex flex-wrap gap-2">
+                  <span class="badge bg-secondary size-option" data-size="XS" style="cursor: pointer;">XS</span>
+                  <span class="badge bg-secondary size-option" data-size="S" style="cursor: pointer;">S</span>
+                  <span class="badge bg-secondary size-option" data-size="M" style="cursor: pointer;">M</span>
+                  <span class="badge bg-secondary size-option" data-size="L" style="cursor: pointer;">L</span>
+                  <span class="badge bg-secondary size-option" data-size="XL" style="cursor: pointer;">XL</span>
+                  <span class="badge bg-secondary size-option" data-size="XXL" style="cursor: pointer;">XXL</span>
+                  <span class="badge bg-secondary size-option" data-size="Small" style="cursor: pointer;">Small</span>
+                  <span class="badge bg-secondary size-option" data-size="Medium" style="cursor: pointer;">Medium</span>
+                  <span class="badge bg-secondary size-option" data-size="Large" style="cursor: pointer;">Large</span>
+                  <span class="badge bg-secondary size-option" data-size="X-Large" style="cursor: pointer;">X-Large</span>
+                  <span class="badge bg-secondary size-option" data-size="2X-Large" style="cursor: pointer;">2X-Large</span>
+                  <span class="badge bg-secondary size-option" data-size="3X-Large" style="cursor: pointer;">3X-Large</span>
+                </div>
+              </div>
+              <div class="input-group">
+                <input type="text" class="form-control" id="customSizeInput" placeholder="Add custom size (e.g., 10ft, 15ft, Custom)">
+                <button type="button" class="btn btn-outline-primary" id="addCustomSizeBtn">
+                  <i class="bi bi-plus"></i> Add
+                </button>
+              </div>
+              <div id="sizeInputsContainer">
+                <!-- Hidden inputs for selected sizes will be generated here -->
+                <% if (currentSizes.length > 0) { %>
+                  <% currentSizes.forEach(size => { %>
+                    <input type="hidden" name="sizes" value="<%= size %>">
+                  <% }); %>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">SEO Settings</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="seoTitle" class="form-label">SEO Title</label>
+            <input type="text" class="form-control" id="seoTitle" name="seoTitle" value="<%= product && product.seoTitle ? product.seoTitle : (typeof formData !== 'undefined' && formData.seoTitle ? formData.seoTitle : '') %>">
+          </div>
+          <div class="mb-3">
+            <label for="seoDescription" class="form-label">SEO Description</label>
+            <textarea class="form-control" id="seoDescription" name="seoDescription" rows="3"><%= product && product.seoDescription ? product.seoDescription : (typeof formData !== 'undefined' && formData.seoDescription ? formData.seoDescription : '') %></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="seoKeywords" class="form-label">SEO Keywords (comma-separated)</label>
+            <input type="text" class="form-control" id="seoKeywords" name="seoKeywords" value="<%= product && product.seoKeywords ? product.seoKeywords.join(', ') : (typeof formData !== 'undefined' && formData.seoKeywords ? (Array.isArray(formData.seoKeywords) ? formData.seoKeywords.join(', ') : formData.seoKeywords) : '') %>">
+          </div>
+          <div class="mb-3">
+            <label for="seoCanonicalUrl" class="form-label">Canonical URL</label>
+            <input type="url" class="form-control" id="seoCanonicalUrl" name="seoCanonicalUrl" value="<%= product && product.seoCanonicalUrl ? product.seoCanonicalUrl : (typeof formData !== 'undefined' && formData.seoCanonicalUrl ? formData.seoCanonicalUrl : '') %>">
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="seoIndex" name="seoIndex" value="true" <%= (typeof formData !== 'undefined' && formData.seoIndex === 'false') ? '' : (!product || product.seoIndex !== false ? 'checked' : '') %>>
+            <label class="form-check-label" for="seoIndex">Allow search engines to index</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-header">Settings</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" id="status" name="status">
+              <option value="draft" <%= (product && product.status === 'draft') || (typeof formData !== 'undefined' && formData.status === 'draft') ? 'selected' : '' %>>Draft</option>
+              <option value="published" <%= (product && product.status === 'published') || (typeof formData !== 'undefined' && formData.status === 'published') ? 'selected' : '' %>>Published</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="displayOrder" class="form-label">Display Order</label>
+            <input type="number" class="form-control" id="displayOrder" name="displayOrder" value="<%= product ? product.displayOrder : (typeof formData !== 'undefined' && formData.displayOrder ? formData.displayOrder : 0) %>">
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="isActive" name="isActive" <%= (typeof formData !== 'undefined' && formData.isActive === 'on') || (!product || product.isActive) ? 'checked' : '' %>>
+            <label class="form-check-label" for="isActive">Active</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">Featured Image</div>
+        <div class="card-body">
+          <div id="featuredImagePreview" class="mb-2">
+            <% if (product && product.featuredImage) { %>
+              <img src="<%= product.featuredImage.thumbnailPath %>" class="img-thumbnail" alt="Featured">
+            <% } %>
+          </div>
+          <input type="hidden" id="featuredImage" name="featuredImage" value="<%= product && product.featuredImage ? product.featuredImage._id.toString() : '' %>">
+          <button type="button" class="btn btn-sm btn-primary w-100" onclick="openImageSelector('featuredImage', 'featuredImagePreview')">
+            <i class="bi bi-image"></i> Select Featured Image
+          </button>
+          <% if (product && product.featuredImage) { %>
+            <button type="button" class="btn btn-sm btn-outline-danger w-100 mt-2" onclick="clearImageSelection('featuredImage', 'featuredImagePreview')">
+              <i class="bi bi-x-circle"></i> Clear
+            </button>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">Product Images</div>
+        <div class="card-body">
+          <div id="productImagesPreview" class="mb-2 row g-2">
+            <% if (product && product.images && product.images.length > 0) { %>
+              <% product.images.forEach(image => { %>
+                <div class="col-6 col-md-4 image-preview-item" data-image-id="<%= image._id.toString() %>">
+                  <div class="position-relative">
+                    <img src="<%= image.thumbnailPath %>" class="img-thumbnail w-100" alt="<%= image.altText || image.title || 'Product image' %>">
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" onclick="removeProductImage('<%= image._id.toString() %>')" style="padding: 0.1rem 0.3rem;">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </div>
+                  <input type="hidden" name="images" value="<%= image._id.toString() %>">
+                </div>
+              <% }); %>
+            <% } %>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary w-100" onclick="openImageSelectorMultiple('productImagesPreview')">
+            <i class="bi bi-images"></i> Add Images
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <button type="submit" class="btn btn-primary">Save Product</button>
+    <a href="/admin/products" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+
+<style>
+  .size-selector-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+  }
+  
+  .size-option {
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+  
+  .size-option:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  
+  .size-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.875rem;
+    padding: 0.35em 0.65em;
+  }
+  
+  .size-tag .btn-close {
+    margin-left: 0.25rem;
+    opacity: 0.8;
+  }
+  
+  .size-tag .btn-close:hover {
+    opacity: 1;
+  }
+  
+  .selected-sizes {
+    min-height: 2.5rem;
+    padding: 0.5rem;
+    background-color: white;
+    border-radius: 0.25rem;
+    border: 1px solid #ced4da;
+  }
+</style>
+
+<script>
+  // Clear image selection
+  function clearImageSelection(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    if (input) {
+      input.value = '';
+      console.log('Cleared input:', inputId, 'New value:', input.value);
+    }
+    if (preview) {
+      preview.innerHTML = '';
+    }
+  }
+
+  // Remove product image
+  function removeProductImage(imageId) {
+    removeImage(imageId);
+  }
+  
+  // Generic remove image function
+  function removeImage(imageId) {
+    const item = document.querySelector(`.image-preview-item[data-image-id="${imageId}"]`);
+    if (item) {
+      item.remove();
+    }
+  }
+
+  // Open image selector for multiple images
+  function openImageSelectorMultiple(previewContainerId) {
+    console.log('openImageSelectorMultiple called with:', previewContainerId);
+    const previewContainer = document.getElementById(previewContainerId);
+    if (!previewContainer) {
+      console.error('Preview container not found:', previewContainerId);
+      alert('Error: Could not find preview container. Please refresh the page.');
+      return;
+    }
+    
+    window.currentMultiplePreviewContainer = previewContainer;
+    window.multipleSelectionMode = true;
+    
+    const modalElement = document.getElementById('imageSelectorModal');
+    if (!modalElement) {
+      console.error('Image selector modal not found');
+      alert('Image selector modal not found. Please refresh the page.');
+      return;
+    }
+    
+    if (typeof bootstrap === 'undefined') {
+      console.error('Bootstrap is not loaded');
+      alert('Bootstrap is not loaded. Please refresh the page.');
+      return;
+    }
+    
+    try {
+      let modal = bootstrap.Modal.getInstance(modalElement);
+      if (!modal) {
+        modal = new bootstrap.Modal(modalElement);
+      }
+      
+      const confirmBtn = document.getElementById('confirmImageSelection');
+      const closeBtn = document.getElementById('closeModalBtn');
+      if (confirmBtn) confirmBtn.textContent = 'Add Image';
+      if (closeBtn) closeBtn.textContent = 'Done';
+      
+      modal.show();
+    } catch (error) {
+      console.error('Error opening modal:', error);
+      alert('Error opening image selector: ' + error.message);
+    }
+  }
+
+  // Size selector functionality
+  (function() {
+    const selectedSizes = new Set();
+    const selectedSizesContainer = document.getElementById('selectedSizes');
+    const sizeInputsContainer = document.getElementById('sizeInputsContainer');
+    const customSizeInput = document.getElementById('customSizeInput');
+    const addCustomSizeBtn = document.getElementById('addCustomSizeBtn');
+
+    // Initialize with existing sizes
+    document.querySelectorAll('.size-tag').forEach(tag => {
+      const size = tag.getAttribute('data-size');
+      if (size) {
+        selectedSizes.add(size);
+      }
+    });
+
+    // Update UI and hidden inputs
+    function updateSizeInputs() {
+      // Clear existing hidden inputs
+      sizeInputsContainer.querySelectorAll('input[name="sizes"]').forEach(input => input.remove());
+      
+      // Add hidden inputs for each selected size
+      selectedSizes.forEach(size => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'sizes';
+        input.value = size;
+        sizeInputsContainer.appendChild(input);
+      });
+    }
+
+    // Update size option badges
+    function updateSizeOptionBadges() {
+      document.querySelectorAll('.size-option').forEach(option => {
+        const size = option.getAttribute('data-size');
+        if (selectedSizes.has(size)) {
+          option.classList.remove('bg-secondary');
+          option.classList.add('bg-primary');
+        } else {
+          option.classList.remove('bg-primary');
+          option.classList.add('bg-secondary');
+        }
+      });
+    }
+
+    // Add size tag to selected sizes display
+    function addSizeTag(size) {
+      if (selectedSizes.has(size)) return;
+      
+      selectedSizes.add(size);
+      
+      const tag = document.createElement('span');
+      tag.className = 'badge bg-primary size-tag me-2 mb-2';
+      tag.setAttribute('data-size', size);
+      tag.innerHTML = `${size}<button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.65em;" aria-label="Remove"></button>`;
+      
+      // Add remove functionality
+      const removeBtn = tag.querySelector('.btn-close');
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeSize(size);
+      });
+      
+      selectedSizesContainer.appendChild(tag);
+      updateSizeInputs();
+      updateSizeOptionBadges();
+    }
+
+    // Remove size tag
+    function removeSize(size) {
+      if (!selectedSizes.has(size)) return;
+      
+      selectedSizes.delete(size);
+      
+      // Remove tag from UI
+      const tag = selectedSizesContainer.querySelector(`.size-tag[data-size="${size}"]`);
+      if (tag) {
+        tag.remove();
+      }
+      
+      updateSizeInputs();
+      updateSizeOptionBadges();
+    }
+
+    // Handle size option clicks
+    document.querySelectorAll('.size-option').forEach(option => {
+      option.addEventListener('click', () => {
+        const size = option.getAttribute('data-size');
+        if (selectedSizes.has(size)) {
+          removeSize(size);
+        } else {
+          addSizeTag(size);
+        }
+      });
+    });
+
+    // Handle existing size tag remove buttons
+    document.querySelectorAll('.size-tag .btn-close').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tag = btn.closest('.size-tag');
+        const size = tag.getAttribute('data-size');
+        removeSize(size);
+      });
+    });
+
+    // Handle custom size input
+    function addCustomSize() {
+      const size = customSizeInput.value.trim();
+      if (size && size.length > 0) {
+        // Check if size already exists
+        if (selectedSizes.has(size)) {
+          customSizeInput.value = '';
+          return;
+        }
+        addSizeTag(size);
+        customSizeInput.value = '';
+      }
+    }
+
+    addCustomSizeBtn.addEventListener('click', addCustomSize);
+    
+    customSizeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addCustomSize();
+      }
+    });
+
+    // Initialize on page load
+    updateSizeInputs();
+    updateSizeOptionBadges();
+  })();
+</script>
+
+<%- include('../../partials/admin-footer') %>
+

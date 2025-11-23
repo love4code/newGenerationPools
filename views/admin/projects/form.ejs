@@ -1,0 +1,223 @@
+<%- include('../../partials/admin-header') %>
+<%- include('../../partials/image-selector-modal') %>
+
+<% if (typeof error !== 'undefined' && error.length > 0) { %>
+  <div class="alert alert-danger alert-dismissible fade show">
+    <%= error[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<h1 class="mb-4"><%= project ? 'Edit' : 'Create' %> Project</h1>
+
+<form method="POST" action="<%= project ? `/admin/projects/${project._id}` : '/admin/projects' %>" id="projectForm">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="title" class="form-label">Title *</label>
+            <input type="text" class="form-control" id="title" name="title" value="<%= project ? project.title : (typeof formData !== 'undefined' && formData.title ? formData.title : '') %>" required>
+          </div>
+          <div class="mb-3">
+            <label for="shortDescription" class="form-label">Short Description</label>
+            <textarea class="form-control" id="shortDescription" name="shortDescription" rows="2"><%= project ? project.shortDescription : (typeof formData !== 'undefined' && formData.shortDescription ? formData.shortDescription : '') %></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Description *</label>
+            <textarea class="form-control" id="description" name="description" rows="10" required><%= project ? project.description : (typeof formData !== 'undefined' && formData.description ? formData.description : '') %></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">SEO Settings</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="seoTitle" class="form-label">SEO Title</label>
+            <input type="text" class="form-control" id="seoTitle" name="seoTitle" value="<%= project && project.seoTitle ? project.seoTitle : (typeof formData !== 'undefined' && formData.seoTitle ? formData.seoTitle : '') %>">
+          </div>
+          <div class="mb-3">
+            <label for="seoDescription" class="form-label">SEO Description</label>
+            <textarea class="form-control" id="seoDescription" name="seoDescription" rows="3"><%= project && project.seoDescription ? project.seoDescription : (typeof formData !== 'undefined' && formData.seoDescription ? formData.seoDescription : '') %></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="seoKeywords" class="form-label">SEO Keywords (comma-separated)</label>
+            <input type="text" class="form-control" id="seoKeywords" name="seoKeywords" value="<%= project && project.seoKeywords ? project.seoKeywords.join(', ') : (typeof formData !== 'undefined' && formData.seoKeywords ? formData.seoKeywords : '') %>">
+          </div>
+          <div class="mb-3">
+            <label for="seoCanonicalUrl" class="form-label">Canonical URL</label>
+            <input type="url" class="form-control" id="seoCanonicalUrl" name="seoCanonicalUrl" value="<%= project && project.seoCanonicalUrl ? project.seoCanonicalUrl : (typeof formData !== 'undefined' && formData.seoCanonicalUrl ? formData.seoCanonicalUrl : '') %>">
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="seoIndex" name="seoIndex" value="true" <%= !project || project.seoIndex !== false ? 'checked' : '' %>>
+            <label class="form-check-label" for="seoIndex">Allow search engines to index</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-header">Settings</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" id="status" name="status">
+              <option value="draft" <%= project && project.status === 'draft' ? 'selected' : '' %>>Draft</option>
+              <option value="published" <%= project && project.status === 'published' ? 'selected' : '' %>>Published</option>
+            </select>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="showInPortfolio" name="showInPortfolio" <%= !project || project.showInPortfolio ? 'checked' : '' %>>
+            <label class="form-check-label" for="showInPortfolio">Show in Portfolio</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">Featured Image</div>
+        <div class="card-body">
+          <div id="featuredImagePreview" class="mb-2">
+            <% if (project && project.featuredImage) { %>
+              <img src="<%= project.featuredImage.thumbnailPath %>" class="img-thumbnail" alt="Featured">
+            <% } %>
+          </div>
+          <input type="hidden" id="featuredImage" name="featuredImage" value="<%= project && project.featuredImage ? project.featuredImage._id.toString() : '' %>">
+          <button type="button" class="btn btn-sm btn-primary w-100" onclick="openImageSelector('featuredImage', 'featuredImagePreview')">
+            <i class="bi bi-image"></i> Select Featured Image
+          </button>
+          <% if (project && project.featuredImage) { %>
+            <button type="button" class="btn btn-sm btn-outline-danger w-100 mt-2" onclick="clearImageSelection('featuredImage', 'featuredImagePreview')">
+              <i class="bi bi-x-circle"></i> Clear
+            </button>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">Project Images</div>
+        <div class="card-body">
+          <div id="projectImagesPreview" class="mb-2 row g-2">
+            <% if (project && project.images && project.images.length > 0) { %>
+              <% project.images.forEach(image => { %>
+                <div class="col-6 col-md-4 image-preview-item" data-image-id="<%= image._id.toString() %>">
+                  <div class="position-relative">
+                    <img src="<%= image.thumbnailPath %>" class="img-thumbnail w-100" alt="<%= image.altText || image.title || 'Project image' %>">
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" onclick="removeProjectImage('<%= image._id.toString() %>')" style="padding: 0.1rem 0.3rem;">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </div>
+                  <input type="hidden" name="images" value="<%= image._id.toString() %>">
+                </div>
+              <% }); %>
+            <% } %>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary w-100" onclick="openImageSelectorMultiple('projectImagesPreview')">
+            <i class="bi bi-images"></i> Add Images
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <button type="submit" class="btn btn-primary" id="submitBtn">Save Project</button>
+    <a href="/admin/projects" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+
+<script>
+  // Prevent double submission and show loading state
+  document.getElementById('projectForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+    
+    // Re-enable after 5 seconds in case of error (prevents permanent disable)
+    setTimeout(function() {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Save Project';
+    }, 5000);
+  });
+
+  // Clear image selection
+  function clearImageSelection(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    if (input) {
+      input.value = '';
+      console.log('Cleared input:', inputId, 'New value:', input.value);
+    }
+    if (preview) {
+      preview.innerHTML = '';
+    }
+  }
+
+  // Remove project image
+  function removeProjectImage(imageId) {
+    removeImage(imageId);
+  }
+  
+  // Generic remove image function
+  function removeImage(imageId) {
+    const item = document.querySelector(`.image-preview-item[data-image-id="${imageId}"]`);
+    if (item) {
+      item.remove();
+    }
+  }
+
+  // Open image selector for multiple images
+  function openImageSelectorMultiple(previewContainerId) {
+    console.log('openImageSelectorMultiple called with:', previewContainerId);
+    const previewContainer = document.getElementById(previewContainerId);
+    if (!previewContainer) {
+      console.error('Preview container not found:', previewContainerId);
+      alert('Error: Could not find preview container. Please refresh the page.');
+      return;
+    }
+    
+    window.currentMultiplePreviewContainer = previewContainer;
+    window.multipleSelectionMode = true;
+    
+    const modalElement = document.getElementById('imageSelectorModal');
+    if (!modalElement) {
+      console.error('Image selector modal not found');
+      alert('Image selector modal not found. Please refresh the page.');
+      return;
+    }
+    
+    if (typeof bootstrap === 'undefined') {
+      console.error('Bootstrap is not loaded');
+      alert('Bootstrap is not loaded. Please refresh the page.');
+      return;
+    }
+    
+    try {
+      let modal = bootstrap.Modal.getInstance(modalElement);
+      if (!modal) {
+        modal = new bootstrap.Modal(modalElement);
+      }
+      
+      const confirmBtn = document.getElementById('confirmImageSelection');
+      const closeBtn = document.getElementById('closeModalBtn');
+      if (confirmBtn) confirmBtn.textContent = 'Add Image';
+      if (closeBtn) closeBtn.textContent = 'Done';
+      
+      modal.show();
+    } catch (error) {
+      console.error('Error opening modal:', error);
+      alert('Error opening image selector: ' + error.message);
+    }
+  }
+</script>
+
+<%- include('../../partials/admin-footer') %>
+

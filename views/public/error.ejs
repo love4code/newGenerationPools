@@ -1,0 +1,10 @@
+<%- include('../partials/public-header') %>
+
+<div class="container py-5 text-center">
+  <h1>Error</h1>
+  <p class="lead"><%= typeof error !== 'undefined' ? error : 'An error occurred' %></p>
+  <a href="/" class="btn btn-primary">Go Home</a>
+</div>
+
+<%- include('../partials/public-footer') %>
+

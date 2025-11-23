@@ -1,0 +1,10 @@
+<%- include('../partials/admin-header') %>
+
+<div class="alert alert-danger">
+  <h4>Error</h4>
+  <p><%= typeof error !== 'undefined' ? error : 'An error occurred' %></p>
+</div>
+<a href="/admin" class="btn btn-primary">Back to Dashboard</a>
+
+<%- include('../partials/admin-footer') %>
+

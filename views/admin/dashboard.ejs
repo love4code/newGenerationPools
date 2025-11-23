@@ -1,0 +1,96 @@
+<%- include('../partials/admin-header') %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<h1 class="mb-4">Dashboard</h1>
+
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card text-white bg-primary">
+      <div class="card-body">
+        <h5 class="card-title">Projects</h5>
+        <h2><%= projectsCount %></h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-success">
+      <div class="card-body">
+        <h5 class="card-title">Services</h5>
+        <h2><%= servicesCount %></h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-info">
+      <div class="card-body">
+        <h5 class="card-title">Products</h5>
+        <h2><%= productsCount %></h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-warning">
+      <div class="card-body">
+        <h5 class="card-title">Media Library</h5>
+        <h2><%= imagesCount %></h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h5>Recent Projects</h5>
+      </div>
+      <div class="card-body">
+        <% if (recentProjects && recentProjects.length > 0) { %>
+          <ul class="list-group">
+            <% recentProjects.forEach(project => { %>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><%= project.title %></span>
+                <span class="badge bg-<%= project.status === 'published' ? 'success' : 'secondary' %>">
+                  <%= project.status %>
+                </span>
+              </li>
+            <% }); %>
+          </ul>
+        <% } else { %>
+          <p class="text-muted">No projects yet.</p>
+        <% } %>
+        <a href="/admin/projects" class="btn btn-primary mt-3">View All Projects</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h5>Recent Uploads</h5>
+      </div>
+      <div class="card-body">
+        <% if (recentImages && recentImages.length > 0) { %>
+          <div class="row">
+            <% recentImages.forEach(image => { %>
+              <div class="col-4 mb-3">
+                <img src="<%= image.thumbnailPath %>" class="img-thumbnail" alt="<%= image.altText %>">
+              </div>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <p class="text-muted">No images uploaded yet.</p>
+        <% } %>
+        <a href="/admin/media" class="btn btn-primary mt-3">View Media Library</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/admin-footer') %>
+

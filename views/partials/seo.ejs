@@ -1,0 +1,37 @@
+<% 
+  const seoData = typeof seo !== 'undefined' ? seo : {};
+  const pageTitle = typeof title !== 'undefined' ? title : 'New Generation Pools';
+  const finalTitle = seoData.title || pageTitle;
+  const finalDescription = seoData.description || (typeof description !== 'undefined' ? description : 'New Generation Pools offers premium pool services.');
+  const keywords = seoData.keywords || [];
+  const canonicalUrl = seoData.canonicalUrl || '';
+  let ogImage = seoData.ogImage || '';
+  // Make ogImage a full URL if it's a relative path
+  if (ogImage && ogImage.startsWith('/')) {
+    ogImage = (typeof baseUrl !== 'undefined' ? baseUrl : '') + ogImage;
+  }
+  const ogUrl = seoData.ogUrl || '';
+  const index = seoData.index !== false;
+%>
+<title><%= finalTitle %></title>
+<meta name="description" content="<%= finalDescription %>">
+<% if (keywords.length > 0) { %>
+<meta name="keywords" content="<%= keywords.join(', ') %>">
+<% } %>
+<% if (!index) { %>
+<meta name="robots" content="noindex,nofollow">
+<% } %>
+<% if (canonicalUrl) { %>
+<link rel="canonical" href="<%= canonicalUrl %>">
+<% } %>
+<!-- OpenGraph -->
+<meta property="og:title" content="<%= finalTitle %>">
+<meta property="og:description" content="<%= finalDescription %>">
+<% if (ogImage) { %>
+<meta property="og:image" content="<%= ogImage %>">
+<% } %>
+<% if (ogUrl) { %>
+<meta property="og:url" content="<%= ogUrl %>">
+<% } %>
+<meta property="og:type" content="website">
+

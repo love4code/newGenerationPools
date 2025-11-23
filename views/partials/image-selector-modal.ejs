@@ -1,0 +1,450 @@
+<!-- Image Selector Modal -->
+<div class="modal fade" id="imageSelectorModal" tabindex="-1" aria-labelledby="imageSelectorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="imageSelectorModalLabel">Select Image</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="nav nav-tabs mb-3" id="imageSelectorTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="browse-tab" data-bs-toggle="tab" data-bs-target="#browse" type="button" role="tab">Browse Library</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">Upload New</button>
+          </li>
+        </ul>
+        <div class="tab-content" id="imageSelectorTabsContent">
+          <div class="tab-pane fade show active" id="browse" role="tabpanel">
+            <div class="mb-3">
+              <input type="text" class="form-control" id="imageSearchInput" placeholder="Search images...">
+            </div>
+            <div id="imageLibraryGrid" class="row g-2" style="max-height: 500px; overflow-y: auto;">
+              <!-- Images will be loaded here via AJAX -->
+            </div>
+          </div>
+          <div class="tab-pane fade" id="upload" role="tabpanel">
+            <form id="quickUploadForm" enctype="multipart/form-data">
+              <div class="mb-3">
+                <label for="quickUploadFile" class="form-label">Select Image(s)</label>
+                <input type="file" class="form-control" id="quickUploadFile" name="images" accept="image/*" multiple>
+                <small class="text-muted">You can select multiple images at once</small>
+              </div>
+              <div class="mb-3">
+                <label for="quickUploadCategory" class="form-label">Category</label>
+                <select class="form-select" id="quickUploadCategory" name="category">
+                  <option value="general">General</option>
+                  <option value="project">Project</option>
+                  <option value="product">Product</option>
+                  <option value="service">Service</option>
+                  <option value="hero">Hero</option>
+                  <option value="portfolio">Portfolio</option>
+                </select>
+              </div>
+              <div id="quickUploadPreview" class="row g-2 mb-3"></div>
+              <div class="progress mb-3" style="display: none;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+              </div>
+              <button type="submit" class="btn btn-primary">Upload</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="closeModalBtn">Close</button>
+        <button type="button" class="btn btn-primary" id="confirmImageSelection">Select</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  let selectedImageId = null;
+  let selectedImagePath = null;
+  let currentTargetInput = null;
+  let currentTargetPreview = null;
+  let allImages = [];
+
+  // Load images from API
+  function loadImages() {
+    fetch('/admin/api/media')
+      .then(response => response.json())
+      .then(images => {
+        allImages = images;
+        renderImages(images);
+      })
+      .catch(error => {
+        console.error('Error loading images:', error);
+        const grid = document.getElementById('imageLibraryGrid');
+        if (grid) {
+          grid.innerHTML = '<div class="col-12"><p class="text-danger">Failed to load images</p></div>';
+        }
+      });
+  }
+
+  // Render images in grid
+  function renderImages(images) {
+    const grid = document.getElementById('imageLibraryGrid');
+    if (images.length === 0) {
+      grid.innerHTML = '<div class="col-12"><p class="text-muted">No images found</p></div>';
+      return;
+    }
+    
+    grid.innerHTML = images.map(image => `
+      <div class="col-md-3 col-sm-4 col-6">
+        <div class="card image-selector-card ${selectedImageId === image._id ? 'border-primary border-3' : ''}" 
+             data-image-id="${image._id}" 
+             data-image-path="${image.thumbnailPath}"
+             style="cursor: pointer;">
+          <img src="${image.thumbnailPath}" class="card-img-top" alt="${image.altText || image.title || image.filename}" style="height: 150px; object-fit: cover;">
+          <div class="card-body p-2">
+            <p class="card-text small text-truncate mb-0" title="${image.title || image.filename}">${image.title || image.filename}</p>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    // Add click handlers (works for both mouse and touch)
+    document.querySelectorAll('.image-selector-card').forEach(card => {
+      // Use both click and touchstart to ensure mobile works
+      const handleSelection = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Remove previous selection
+        document.querySelectorAll('.image-selector-card').forEach(c => c.classList.remove('border-primary', 'border-3'));
+        // Add selection to clicked card
+        this.classList.add('border-primary', 'border-3');
+        selectedImageId = this.dataset.imageId;
+        selectedImagePath = this.dataset.imagePath;
+        window.selectedImageId = selectedImageId; // Also set globally
+        console.log('Image selected:', selectedImageId);
+      };
+      
+      card.addEventListener('click', handleSelection);
+      card.addEventListener('touchend', handleSelection);
+    });
+  }
+
+  // Initialize on DOM ready
+  function initializeImageSelector() {
+    const searchInput = document.getElementById('imageSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const filtered = allImages.filter(image => {
+          const title = (image.title || '').toLowerCase();
+          const filename = (image.filename || '').toLowerCase();
+          const altText = (image.altText || '').toLowerCase();
+          return title.includes(searchTerm) || filename.includes(searchTerm) || altText.includes(searchTerm);
+        });
+        renderImages(filtered);
+      });
+    }
+
+    // Quick upload form
+    const quickUploadForm = document.getElementById('quickUploadForm');
+    if (quickUploadForm) {
+      const quickUploadFile = document.getElementById('quickUploadFile');
+      const quickUploadPreview = document.getElementById('quickUploadPreview');
+      const progressBar = document.querySelector('#upload .progress');
+      const progressBarFill = document.querySelector('#upload .progress-bar');
+
+      quickUploadFile.addEventListener('change', function() {
+        quickUploadPreview.innerHTML = '';
+        if (this.files.length > 0) {
+          Array.from(this.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const col = document.createElement('div');
+              col.className = 'col-md-3 col-sm-4 col-6';
+              col.innerHTML = `
+                <div class="card">
+                  <img src="${e.target.result}" class="card-img-top" style="height: 100px; object-fit: cover;" alt="${file.name}">
+                  <div class="card-body p-2">
+                    <p class="card-text small text-truncate mb-0">${file.name}</p>
+                  </div>
+                </div>
+              `;
+              quickUploadPreview.appendChild(col);
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+      });
+
+      quickUploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        progressBar.style.display = 'block';
+        progressBarFill.style.width = '0%';
+
+        fetch('/admin/media/upload-multiple', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            progressBarFill.style.width = '100%';
+            // Add uploaded images to the library immediately
+            if (data.images && data.images.length > 0) {
+              allImages = [...data.images, ...allImages];
+              renderImages(allImages);
+            } else {
+              loadImages(); // Reload all images if no data returned
+            }
+            setTimeout(() => {
+              quickUploadForm.reset();
+              quickUploadPreview.innerHTML = '';
+              progressBar.style.display = 'none';
+              // Switch to browse tab
+              const browseTab = document.getElementById('browse-tab');
+              if (browseTab) browseTab.click();
+            }, 500);
+          } else {
+            alert('Upload failed: ' + (data.message || 'Unknown error'));
+            progressBar.style.display = 'none';
+          }
+        })
+        .catch(error => {
+          console.error('Upload error:', error);
+          alert('Upload failed: ' + error.message);
+          progressBar.style.display = 'none';
+        });
+      });
+    }
+
+    // Confirm selection button
+    const confirmBtn = document.getElementById('confirmImageSelection');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', function() {
+        // Check if this is for multiple selection
+        if (window.multipleSelectionMode && window.currentMultiplePreviewContainer) {
+          console.log('Multiple selection mode');
+          if (selectedImageId && window.currentMultiplePreviewContainer) {
+            const previewContainer = window.currentMultiplePreviewContainer;
+            // Check if image already added
+            const existing = previewContainer.querySelector(`[data-image-id="${selectedImageId}"]`);
+            if (existing) {
+              alert('This image is already added');
+              return;
+            }
+            
+            // Add image preview
+            fetch(`/admin/api/media`)
+              .then(response => response.json())
+              .then(images => {
+                const image = images.find(img => img._id === selectedImageId);
+                if (image) {
+                  const col = document.createElement('div');
+                  col.className = 'col-6 col-md-4 image-preview-item';
+                  col.setAttribute('data-image-id', image._id);
+                  const containerType = previewContainer.id.includes('product') ? 'Product' : 'Project';
+                  col.innerHTML = `
+                    <div class="position-relative">
+                      <img src="${image.thumbnailPath}" class="img-thumbnail w-100" alt="${image.altText || image.title || containerType + ' image'}">
+                      <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1" onclick="removeImage('${image._id}')" style="padding: 0.1rem 0.3rem;">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </div>
+                    <input type="hidden" name="images" value="${image._id}">
+                  `;
+                  previewContainer.appendChild(col);
+                }
+                selectedImageId = null;
+                // Clear selection in modal
+                document.querySelectorAll('.image-selector-card').forEach(c => c.classList.remove('border-primary', 'border-3'));
+              });
+          }
+          return; // Don't close modal for multiple selection
+        }
+        
+        // Single selection
+        if (selectedImageId && currentTargetInput) {
+          console.log('Single selection:', selectedImageId, 'Setting input value');
+          currentTargetInput.value = selectedImageId;
+          console.log('Input value after setting:', currentTargetInput.value);
+          
+          // Update preview immediately with the thumbnail path we have
+          if (currentTargetPreview) {
+            // First, try to use the path we already have
+            const selectedCard = document.querySelector(`.image-selector-card[data-image-id="${selectedImageId}"]`);
+            if (selectedCard) {
+              const thumbnailPath = selectedCard.dataset.imagePath;
+              if (thumbnailPath) {
+                currentTargetPreview.innerHTML = `<img src="${thumbnailPath}" class="img-thumbnail" alt="Selected">`;
+                currentTargetPreview.style.display = 'block';
+              }
+            }
+            
+            // Then fetch full image data to show proper preview
+            fetch(`/admin/api/media`)
+              .then(response => response.json())
+              .then(images => {
+                const image = images.find(img => img._id === selectedImageId);
+                if (image) {
+                  currentTargetPreview.innerHTML = `<img src="${image.thumbnailPath}" class="img-thumbnail" alt="${image.altText || image.title || 'Selected'}">`;
+                  currentTargetPreview.style.display = 'block';
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching image data:', error);
+                // Still set the value even if preview fails
+              });
+          }
+          
+          // Close modal
+          const modalElement = document.getElementById('imageSelectorModal');
+          if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+              modal.hide();
+            } else {
+              // If no instance exists, create one and hide it
+              const newModal = new bootstrap.Modal(modalElement);
+              newModal.hide();
+            }
+          }
+          
+          // Reset selection state
+          selectedImageId = null;
+          window.selectedImageId = null;
+          // Don't clear currentTargetInput and currentTargetPreview here - they're needed for form submission
+        } else {
+          console.log('No selection or target:', { selectedImageId, currentTargetInput: !!currentTargetInput });
+          if (!selectedImageId) {
+            alert('Please select an image first');
+          } else if (!currentTargetInput) {
+            alert('Error: Target input not found. Please refresh the page.');
+          }
+        }
+      });
+    }
+
+    // Reset on modal show
+    const modal = document.getElementById('imageSelectorModal');
+    if (modal) {
+      modal.addEventListener('show.bs.modal', function() {
+        selectedImageId = null;
+        selectedImagePath = null;
+        if (!window.multipleSelectionMode) {
+          window.currentMultiplePreviewContainer = null;
+        }
+        loadImages();
+      });
+      
+      modal.addEventListener('hidden.bs.modal', function() {
+        if (!window.multipleSelectionMode) {
+          window.currentMultiplePreviewContainer = null;
+          currentTargetInput = null;
+          currentTargetPreview = null;
+        }
+      });
+    }
+  }
+  
+  // Run initialization
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeImageSelector);
+  } else {
+    initializeImageSelector();
+  }
+
+  // Export function to open modal for single selection
+  window.openImageSelector = function(targetInputId, previewId) {
+    console.log('openImageSelector called with:', targetInputId, previewId);
+    const inputEl = document.getElementById(targetInputId);
+    const previewEl = previewId ? document.getElementById(previewId) : null;
+    
+    if (!inputEl) {
+      console.error('Target input not found:', targetInputId);
+      alert('Error: Could not find target input field. Please refresh the page.');
+      return;
+    }
+    
+    currentTargetInput = inputEl;
+    currentTargetPreview = previewEl;
+    window.currentMultiplePreviewContainer = null;
+    window.multipleSelectionMode = false;
+    
+    // Reset any previous selection
+    selectedImageId = null;
+    window.selectedImageId = null;
+    
+    const confirmBtn = document.getElementById('confirmImageSelection');
+    const closeBtn = document.getElementById('closeModalBtn');
+    if (confirmBtn) confirmBtn.textContent = 'Select';
+    if (closeBtn) closeBtn.textContent = 'Cancel';
+    
+    const modalElement = document.getElementById('imageSelectorModal');
+    if (!modalElement) {
+      console.error('Image selector modal element not found in DOM');
+      alert('Image selector modal not found. Please refresh the page.');
+      return;
+    }
+    
+    // Check if Bootstrap is available
+    if (typeof bootstrap === 'undefined') {
+      console.error('Bootstrap is not loaded');
+      alert('Bootstrap is not loaded. Please refresh the page.');
+      return;
+    }
+    
+    try {
+      // Get existing modal instance or create new one
+      let modal = bootstrap.Modal.getInstance(modalElement);
+      if (!modal) {
+        modal = new bootstrap.Modal(modalElement, {
+          backdrop: true,
+          keyboard: true,
+          focus: true
+        });
+      }
+      modal.show();
+      
+      // Ensure images are loaded when modal opens
+      setTimeout(() => {
+        if (allImages.length === 0) {
+          loadImages();
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error opening modal:', error);
+      alert('Error opening image selector: ' + error.message);
+    }
+  };
+  
+  // Store selected image ID globally for access
+  window.selectedImageId = null;
+  window.multipleSelectionMode = false;
+})();
+</script>
+
+<style>
+.image-selector-card {
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+  touch-action: manipulation; /* Improve touch responsiveness */
+}
+.image-selector-card:hover,
+.image-selector-card:active {
+  opacity: 0.8;
+  transform: scale(1.02);
+}
+.image-selector-card.border-primary {
+  border: 3px solid var(--bs-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+/* Ensure cards are touch-friendly on mobile */
+@media (max-width: 768px) {
+  .image-selector-card {
+    min-height: 180px;
+  }
+  .image-selector-card img {
+    pointer-events: none; /* Prevent image drag on mobile */
+  }
+}
+</style>
+

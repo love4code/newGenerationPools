@@ -1,0 +1,37 @@
+<%- include('../partials/public-header') %>
+
+<% if (service && service.heroImage) { %>
+  <section class="hero-section" style="background-image: url('<%= service.heroImage.largePath %>');">
+    <div class="container">
+      <div class="hero-overlay">
+        <h1 class="display-4"><%= service.name %></h1>
+      </div>
+    </div>
+  </section>
+<% } %>
+
+<div class="container py-5">
+  <div class="row">
+    <div class="col-lg-8">
+      <h1><%= service.name %></h1>
+      <% if (service.shortDescription) { %>
+        <p class="lead"><%= service.shortDescription %></p>
+      <% } %>
+      <div class="mt-4">
+        <%= service.description.replace(/\n/g, '<br>') %>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-body">
+          <h5>Get Started</h5>
+          <p>Interested in this service? Contact us today!</p>
+          <a href="/contact" class="btn btn-primary w-100">Contact Us</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/public-footer') %>
+

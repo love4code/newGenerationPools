@@ -1,0 +1,70 @@
+<%- include('../partials/public-header') %>
+
+<div class="container py-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <h1 class="mb-4">Contact Us</h1>
+      
+      <% if (typeof success !== 'undefined' && success.length > 0) { %>
+        <div class="alert alert-success alert-dismissible fade show">
+          <%= success[0] %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+      
+      <% if (typeof error !== 'undefined' && error.length > 0) { %>
+        <div class="alert alert-danger alert-dismissible fade show">
+          <%= error[0] %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% } %>
+
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body">
+              <h5><i class="bi bi-envelope"></i> Email</h5>
+              <p><%= settings && settings.contactEmail ? settings.contactEmail : 'contact@newgenerationpools.com' %></p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body">
+              <h5><i class="bi bi-telephone"></i> Phone</h5>
+              <p><%= settings && settings.contactPhone ? settings.contactPhone : 'Call us for more information' %></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Send us a Message</h5>
+          <form method="POST" action="/contact">
+            <div class="mb-3">
+              <label for="name" class="form-label">Name *</label>
+              <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email *</label>
+              <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            <div class="mb-3">
+              <label for="phone" class="form-label">Phone</label>
+              <input type="tel" class="form-control" id="phone" name="phone">
+            </div>
+            <div class="mb-3">
+              <label for="message" class="form-label">Message *</label>
+              <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Send Message</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/public-footer') %>
+

@@ -1,0 +1,33 @@
+<%- include('../partials/public-header') %>
+
+<div class="container py-5">
+  <div class="row">
+    <div class="col-lg-8">
+      <h1><%= project.title %></h1>
+      <% if (project.shortDescription) { %>
+        <p class="lead"><%= project.shortDescription %></p>
+      <% } %>
+      
+      <% if (project.featuredImage) { %>
+        <img src="<%= project.featuredImage.largePath %>" class="img-fluid rounded mb-4" alt="<%= project.featuredImage.altText %>">
+      <% } %>
+      
+      <div class="mb-4">
+        <%= project.description.replace(/\n/g, '<br>') %>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-body">
+          <h5>Interested in a Similar Project?</h5>
+          <p>Contact us to discuss your pool project!</p>
+          <a href="/contact" class="btn btn-primary w-100">Contact Us</a>
+          <a href="/portfolio" class="btn btn-outline-primary w-100 mt-2">View All Projects</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/public-footer') %>
+

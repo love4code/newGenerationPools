@@ -1,0 +1,326 @@
+<%- include('../partials/admin-header') %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<h1 class="mb-4">Settings</h1>
+
+<form method="POST" action="/admin/settings">
+  <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button">General</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="company-tab" data-bs-toggle="tab" data-bs-target="#company" type="button">Company Info</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="theme-tab" data-bs-toggle="tab" data-bs-target="#theme" type="button">Theme</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button">Social Media</button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="settingsTabsContent">
+    <!-- General Settings -->
+    <div class="tab-pane fade show active" id="general" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="siteName" class="form-label">Site Name</label>
+            <input type="text" class="form-control" id="siteName" name="siteName" value="<%= settings.siteName %>">
+          </div>
+          <div class="mb-3">
+            <label for="defaultMetaTitle" class="form-label">Default Meta Title</label>
+            <input type="text" class="form-control" id="defaultMetaTitle" name="defaultMetaTitle" value="<%= settings.defaultMetaTitle %>">
+          </div>
+          <div class="mb-3">
+            <label for="defaultMetaDescription" class="form-label">Default Meta Description</label>
+            <textarea class="form-control" id="defaultMetaDescription" name="defaultMetaDescription" rows="3"><%= settings.defaultMetaDescription %></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="defaultOpenGraphImage" class="form-label">Default OpenGraph Image</label>
+            <select class="form-select" id="defaultOpenGraphImage" name="defaultOpenGraphImage">
+              <option value="">None</option>
+              <% if (images) { %>
+                <% images.forEach(image => { %>
+                  <option value="<%= image._id %>" <%= settings.defaultOpenGraphImage && settings.defaultOpenGraphImage.toString() === image._id.toString() ? 'selected' : '' %>>
+                    <%= image.title || image.filename %>
+                  </option>
+                <% }); %>
+              <% } %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="contactEmail" class="form-label">Contact Email</label>
+            <input type="email" class="form-control" id="contactEmail" name="contactEmail" value="<%= settings.contactEmail %>">
+          </div>
+          <div class="mb-3">
+            <label for="contactPhone" class="form-label">Contact Phone</label>
+            <input type="tel" class="form-control" id="contactPhone" name="contactPhone" value="<%= settings.contactPhone %>">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Company Information -->
+    <div class="tab-pane fade" id="company" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="companyName" class="form-label">Company Name</label>
+            <input type="text" class="form-control" id="companyName" name="companyName" value="<%= settings.companyName || '' %>">
+          </div>
+          <div class="mb-3">
+            <label for="companyAddressStreet" class="form-label">Street Address</label>
+            <input type="text" class="form-control" id="companyAddressStreet" name="companyAddressStreet" value="<%= settings.companyAddress && settings.companyAddress.street ? settings.companyAddress.street : '' %>">
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="companyAddressCity" class="form-label">City</label>
+                <input type="text" class="form-control" id="companyAddressCity" name="companyAddressCity" value="<%= settings.companyAddress && settings.companyAddress.city ? settings.companyAddress.city : '' %>">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="mb-3">
+                <label for="companyAddressState" class="form-label">State</label>
+                <input type="text" class="form-control" id="companyAddressState" name="companyAddressState" value="<%= settings.companyAddress && settings.companyAddress.state ? settings.companyAddress.state : '' %>">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="mb-3">
+                <label for="companyAddressZip" class="form-label">ZIP Code</label>
+                <input type="text" class="form-control" id="companyAddressZip" name="companyAddressZip" value="<%= settings.companyAddress && settings.companyAddress.zip ? settings.companyAddress.zip : '' %>">
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="companyAddressCountry" class="form-label">Country</label>
+            <input type="text" class="form-control" id="companyAddressCountry" name="companyAddressCountry" value="<%= settings.companyAddress && settings.companyAddress.country ? settings.companyAddress.country : '' %>">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme Settings -->
+    <div class="tab-pane fade" id="theme" role="tabpanel">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5>Theme Presets</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">Choose a pre-built blue-based theme or select "Custom" to create your own.</p>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="card theme-preset-card" data-preset="default">
+                <div class="card-body text-center">
+                  <div class="theme-preview mb-2" style="background: linear-gradient(135deg, #0d6efd 0%, #6c757d 100%); height: 80px; border-radius: 5px;"></div>
+                  <h6>Default Blue</h6>
+                  <input type="radio" name="themePreset" value="default" id="preset-default" <%= !settings.theme || settings.theme.preset === 'default' ? 'checked' : '' %>>
+                  <label for="preset-default" class="ms-2">Select</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card theme-preset-card" data-preset="ocean">
+                <div class="card-body text-center">
+                  <div class="theme-preview mb-2" style="background: linear-gradient(135deg, #0066cc 0%, #4da6ff 100%); height: 80px; border-radius: 5px;"></div>
+                  <h6>Ocean Blue</h6>
+                  <input type="radio" name="themePreset" value="ocean" id="preset-ocean" <%= settings.theme && settings.theme.preset === 'ocean' ? 'checked' : '' %>>
+                  <label for="preset-ocean" class="ms-2">Select</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card theme-preset-card" data-preset="sky">
+                <div class="card-body text-center">
+                  <div class="theme-preview mb-2" style="background: linear-gradient(135deg, #3399ff 0%, #66b3ff 100%); height: 80px; border-radius: 5px;"></div>
+                  <h6>Sky Blue</h6>
+                  <input type="radio" name="themePreset" value="sky" id="preset-sky" <%= settings.theme && settings.theme.preset === 'sky' ? 'checked' : '' %>>
+                  <label for="preset-sky" class="ms-2">Select</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card theme-preset-card" data-preset="navy">
+                <div class="card-body text-center">
+                  <div class="theme-preview mb-2" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); height: 80px; border-radius: 5px;"></div>
+                  <h6>Navy Blue</h6>
+                  <input type="radio" name="themePreset" value="navy" id="preset-navy" <%= settings.theme && settings.theme.preset === 'navy' ? 'checked' : '' %>>
+                  <label for="preset-navy" class="ms-2">Select</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card theme-preset-card" data-preset="teal">
+                <div class="card-body text-center">
+                  <div class="theme-preview mb-2" style="background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); height: 80px; border-radius: 5px;"></div>
+                  <h6>Teal Blue</h6>
+                  <input type="radio" name="themePreset" value="teal" id="preset-teal" <%= settings.theme && settings.theme.preset === 'teal' ? 'checked' : '' %>>
+                  <label for="preset-teal" class="ms-2">Select</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card theme-preset-card border-primary" data-preset="custom">
+                <div class="card-body text-center">
+                  <div class="theme-preview mb-2" style="background: linear-gradient(135deg, #999 0%, #666 100%); height: 80px; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-palette" style="font-size: 2rem; color: white;"></i>
+                  </div>
+                  <h6>Custom Theme</h6>
+                  <input type="radio" name="themePreset" value="custom" id="preset-custom" <%= settings.theme && settings.theme.preset === 'custom' ? 'checked' : '' %>>
+                  <label for="preset-custom" class="ms-2">Select</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="customThemeSettings" style="<%= settings.theme && settings.theme.preset === 'custom' ? '' : 'display: none;' %>">
+        <div class="card-header">
+          <h5>Custom Color Settings</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">Customize your theme colors. These settings are only used when "Custom Theme" is selected.</p>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="primaryColor" class="form-label">Primary Color</label>
+                <input type="color" class="form-control form-control-color" id="primaryColor" name="primaryColor" value="<%= settings.theme && settings.theme.primaryColor ? settings.theme.primaryColor : '#0d6efd' %>" title="Primary Color">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="secondaryColor" class="form-label">Secondary Color</label>
+                <input type="color" class="form-control form-control-color" id="secondaryColor" name="secondaryColor" value="<%= settings.theme && settings.theme.secondaryColor ? settings.theme.secondaryColor : '#6c757d' %>" title="Secondary Color">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="navbarColor" class="form-label">Navbar Color</label>
+                <input type="color" class="form-control form-control-color" id="navbarColor" name="navbarColor" value="<%= settings.theme && settings.theme.navbarColor ? settings.theme.navbarColor : '#212529' %>" title="Navbar Color">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="footerColor" class="form-label">Footer Color</label>
+                <input type="color" class="form-control form-control-color" id="footerColor" name="footerColor" value="<%= settings.theme && settings.theme.footerColor ? settings.theme.footerColor : '#2c3e50' %>" title="Footer Color">
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="fontFamily" class="form-label">Font Family</label>
+            <select class="form-select" id="fontFamily" name="fontFamily">
+              <option value="system-ui, -apple-system, sans-serif" <%= settings.theme && settings.theme.fontFamily === 'system-ui, -apple-system, sans-serif' ? 'selected' : '' %>>System Default</option>
+              <option value="'Arial', sans-serif" <%= settings.theme && settings.theme.fontFamily === "'Arial', sans-serif" ? 'selected' : '' %>>Arial</option>
+              <option value="'Georgia', serif" <%= settings.theme && settings.theme.fontFamily === "'Georgia', serif" ? 'selected' : '' %>>Georgia</option>
+              <option value="'Times New Roman', serif" <%= settings.theme && settings.theme.fontFamily === "'Times New Roman', serif" ? 'selected' : '' %>>Times New Roman</option>
+              <option value="'Courier New', monospace" <%= settings.theme && settings.theme.fontFamily === "'Courier New', monospace" ? 'selected' : '' %>>Courier New</option>
+              <option value="'Verdana', sans-serif" <%= settings.theme && settings.theme.fontFamily === "'Verdana', sans-serif" ? 'selected' : '' %>>Verdana</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-info mt-3">
+        <strong>Note:</strong> Theme changes will be applied to the public website. You may need to clear your browser cache to see changes.
+      </div>
+    </div>
+
+    <!-- Social Media -->
+    <div class="tab-pane fade" id="social" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="facebook" class="form-label">Facebook URL</label>
+            <input type="url" class="form-control" id="facebook" name="facebook" value="<%= settings.socialLinks && settings.socialLinks.facebook ? settings.socialLinks.facebook : '' %>" placeholder="https://facebook.com/yourpage">
+          </div>
+          <div class="mb-3">
+            <label for="instagram" class="form-label">Instagram URL</label>
+            <input type="url" class="form-control" id="instagram" name="instagram" value="<%= settings.socialLinks && settings.socialLinks.instagram ? settings.socialLinks.instagram : '' %>" placeholder="https://instagram.com/yourpage">
+          </div>
+          <div class="mb-3">
+            <label for="twitter" class="form-label">Twitter URL</label>
+            <input type="url" class="form-control" id="twitter" name="twitter" value="<%= settings.socialLinks && settings.socialLinks.twitter ? settings.socialLinks.twitter : '' %>" placeholder="https://twitter.com/yourpage">
+          </div>
+          <div class="mb-3">
+            <label for="linkedin" class="form-label">LinkedIn URL</label>
+            <input type="url" class="form-control" id="linkedin" name="linkedin" value="<%= settings.socialLinks && settings.socialLinks.linkedin ? settings.socialLinks.linkedin : '' %>" placeholder="https://linkedin.com/company/yourcompany">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <button type="submit" class="btn btn-primary">Save Settings</button>
+  </div>
+</form>
+
+<script>
+  // Show/hide custom theme settings based on selected preset
+  document.querySelectorAll('input[name="themePreset"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      const customSettings = document.getElementById('customThemeSettings');
+      if (this.value === 'custom') {
+        customSettings.style.display = 'block';
+      } else {
+        customSettings.style.display = 'none';
+      }
+    });
+  });
+
+  // Highlight selected preset card
+  document.querySelectorAll('.theme-preset-card').forEach(card => {
+    const radio = card.querySelector('input[type="radio"]');
+    if (radio.checked) {
+      card.classList.add('border-primary', 'border-2');
+    }
+    
+    card.addEventListener('click', function(e) {
+      if (e.target.type !== 'radio') {
+        const radio = this.querySelector('input[type="radio"]');
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change'));
+      }
+    });
+  });
+
+  // Update card border on selection
+  document.querySelectorAll('input[name="themePreset"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      document.querySelectorAll('.theme-preset-card').forEach(card => {
+        card.classList.remove('border-primary', 'border-2');
+      });
+      const selectedCard = document.querySelector(`.theme-preset-card[data-preset="${this.value}"]`);
+      if (selectedCard) {
+        selectedCard.classList.add('border-primary', 'border-2');
+      }
+    });
+  });
+</script>
+
+<style>
+  .theme-preset-card {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .theme-preset-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  .theme-preset-card.border-primary {
+    border-width: 2px !important;
+  }
+</style>
+
+<%- include('../partials/admin-footer') %>
+

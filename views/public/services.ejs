@@ -1,0 +1,31 @@
+<%- include('../partials/public-header') %>
+
+<div class="container py-5">
+  <h1 class="mb-5">Our Services</h1>
+  
+  <div class="row g-4">
+    <% if (services && services.length > 0) { %>
+      <% services.forEach(service => { %>
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100">
+            <% if (service.iconImage) { %>
+              <img src="<%= service.iconImage.mediumPath %>" class="card-img-top" alt="<%= service.iconImage.altText %>">
+            <% } %>
+            <div class="card-body">
+              <h5 class="card-title"><%= service.name %></h5>
+              <p class="card-text"><%= service.shortDescription || service.description.substring(0, 150) + '...' %></p>
+              <a href="/services/<%= service.slug %>" class="btn btn-primary">Learn More</a>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="col-12">
+        <p class="text-center text-muted">No services available at this time.</p>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/public-footer') %>
+

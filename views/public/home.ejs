@@ -1,0 +1,217 @@
+<%- include('../partials/public-header') %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<!-- Hero Section -->
+<section class="hero-section text-white" style="background-color: var(--primary-color);">
+  <div class="container">
+    <div class="hero-overlay" style="background: transparent; padding: 2rem 0;">
+      <h1 class="display-5 mb-2 mb-md-3">New Generation Pools</h1>
+      <p class="lead mb-3 mb-md-4">Premium pool design, installation, and maintenance services</p>
+      <a href="/products" class="btn btn-light btn-lg">View Our Pools</a>
+    </div>
+  </div>
+</section>
+
+<!-- Services Overview -->
+<section class="py-5">
+  <div class="container">
+    <h2 class="text-center mb-5">Our Services</h2>
+    <div class="row g-4">
+      <% if (services && services.length > 0) { %>
+        <% services.forEach(service => { %>
+          <div class="col-md-4">
+            <div class="card h-100">
+              <% if (service.iconImage) { %>
+                <img src="<%= service.iconImage.mediumPath %>" class="card-img-top" alt="<%= service.iconImage.altText %>">
+              <% } %>
+              <div class="card-body">
+                <h5 class="card-title"><%= service.name %></h5>
+                <p class="card-text"><%= service.shortDescription || service.description.substring(0, 100) + '...' %></p>
+                <a href="/services/<%= service.slug %>" class="btn btn-primary">Learn More</a>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <div class="col-12">
+          <p class="text-center text-muted">Services coming soon...</p>
+        </div>
+      <% } %>
+    </div>
+    <div class="text-center mt-4">
+      <a href="/services" class="btn btn-outline-primary">View All Services</a>
+    </div>
+  </div>
+</section>
+
+<!-- Products Section -->
+<section class="py-5 bg-light">
+  <div class="container">
+    <h2 class="text-center mb-5">Our Products</h2>
+    <% if (products && products.length > 0) { %>
+      <div class="row g-4">
+        <% products.forEach(product => { %>
+          <div class="col-lg-3 col-md-6">
+            <div class="card h-100">
+              <% 
+                // Use featured image first, then first image from images array, then placeholder
+                let displayImage = null;
+                if (product.featuredImage) {
+                  displayImage = product.featuredImage;
+                } else if (product.images && product.images.length > 0 && product.images[0]) {
+                  displayImage = product.images[0];
+                }
+              %>
+              <% if (displayImage) { %>
+                <img src="<%= displayImage.mediumPath %>" class="card-img-top" alt="<%= displayImage.altText || product.name %>" style="height: 180px; object-fit: cover;">
+              <% } else { %>
+                <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 180px;">
+                  <span class="text-white">No Image</span>
+                </div>
+              <% } %>
+              <div class="card-body">
+                <h5 class="card-title"><%= product.name %></h5>
+                <p class="card-text"><%= product.shortDescription || (product.description ? product.description.substring(0, 100) + '...' : 'No description available') %></p>
+                <% if (product.price && product.price > 0) { %>
+                  <p class="text-primary fw-bold mb-2">$<%= product.price.toFixed(2) %></p>
+                <% } %>
+                <a href="/products/<%= product.slug %>" class="btn btn-primary">View Product</a>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <div class="text-center">
+        <p class="text-muted">No products available at this time.</p>
+      </div>
+    <% } %>
+  </div>
+</section>
+
+<!-- Recent Projects Section -->
+<section class="py-5">
+  <div class="container">
+    <h2 class="text-center mb-5">Recent Projects</h2>
+    <% if (recentProjects && recentProjects.length > 0) { %>
+      <div class="row g-4">
+        <% recentProjects.forEach(project => { %>
+          <div class="col-lg-3 col-md-6">
+            <div class="card h-100">
+              <% 
+                // Use featured image first, then first image from images array, then placeholder
+                let displayImage = null;
+                if (project.featuredImage) {
+                  displayImage = project.featuredImage;
+                } else if (project.images && project.images.length > 0 && project.images[0]) {
+                  displayImage = project.images[0];
+                }
+              %>
+              <% if (displayImage) { %>
+                <img src="<%= displayImage.mediumPath %>" class="card-img-top" alt="<%= displayImage.altText || project.title %>" style="height: 250px; object-fit: cover;">
+              <% } else { %>
+                <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 250px;">
+                  <span class="text-white">No Image</span>
+                </div>
+              <% } %>
+              <div class="card-body">
+                <h5 class="card-title"><%= project.title %></h5>
+                <p class="card-text"><%= project.shortDescription || (project.description ? project.description.substring(0, 100) + '...' : 'No description available') %></p>
+                <a href="/projects/<%= project.slug %>" class="btn btn-primary">View Project</a>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+      <div class="text-center mt-4">
+        <a href="/portfolio" class="btn btn-outline-primary">View All Projects</a>
+      </div>
+    <% } else { %>
+      <div class="text-center">
+        <p class="text-muted">No recent projects available at this time.</p>
+        <a href="/portfolio" class="btn btn-outline-primary">View Portfolio</a>
+      </div>
+    <% } %>
+  </div>
+</section>
+
+<!-- Contact Form Section -->
+<section class="py-5 bg-light">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 mx-auto">
+        <h2 class="text-center mb-4">Get Your Free Quote</h2>
+        <p class="text-center text-muted mb-4">Fill out the form below and we'll get back to you as soon as possible.</p>
+        
+        <% if (typeof success !== 'undefined' && success.length > 0) { %>
+          <div class="alert alert-success alert-dismissible fade show">
+            <%= success[0] %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        <% } %>
+        
+        <% if (typeof error !== 'undefined' && error.length > 0) { %>
+          <div class="alert alert-danger alert-dismissible fade show">
+            <%= error[0] %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        <% } %>
+
+        <div class="card shadow">
+          <div class="card-body p-4">
+            <form method="POST" action="/home-contact">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="name" class="form-label">Name *</label>
+                  <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="email" class="form-label">Email *</label>
+                  <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="phone" class="form-label">Phone</label>
+                  <input type="tel" class="form-control" id="phone" name="phone" placeholder="(555) 123-4567">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="town" class="form-label">Town *</label>
+                  <input type="text" class="form-control" id="town" name="town" required>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-12 mb-3">
+                  <label for="serviceType" class="form-label">Service Type *</label>
+                  <select class="form-select" id="serviceType" name="serviceType" required>
+                    <option value="">Select a service...</option>
+                    <option value="New pool">New pool</option>
+                    <option value="pool install">Pool install</option>
+                    <option value="pool replacement">Pool replacement</option>
+                    <option value="pool removal">Pool removal</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="message" class="form-label">Message</label>
+                <textarea class="form-control" id="message" name="message" rows="4" placeholder="Tell us about your project or any questions you have..."></textarea>
+              </div>
+              <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">Submit Request</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/public-footer') %>
+

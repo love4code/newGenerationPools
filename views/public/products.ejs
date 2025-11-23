@@ -1,0 +1,47 @@
+<%- include('../partials/public-header') %>
+
+<div class="container py-5">
+  <h1 class="mb-5 text-center">Our Products</h1>
+  
+  <div class="row g-4">
+    <% if (products && products.length > 0) { %>
+      <% products.forEach(product => { %>
+        <div class="col-md-6 col-lg-4 col-xl-3">
+          <div class="card h-100">
+            <% 
+              // Use featured image first, then first image from images array, then placeholder
+              let displayImage = null;
+              if (product.featuredImage) {
+                displayImage = product.featuredImage;
+              } else if (product.images && product.images.length > 0 && product.images[0]) {
+                displayImage = product.images[0];
+              }
+            %>
+            <% if (displayImage) { %>
+              <img src="<%= displayImage.mediumPath %>" class="card-img-top" alt="<%= displayImage.altText || product.name %>" style="height: 180px; object-fit: cover;">
+            <% } else { %>
+              <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 180px;">
+                <span class="text-white">No Image</span>
+              </div>
+            <% } %>
+            <div class="card-body">
+              <h5 class="card-title"><%= product.name %></h5>
+              <p class="card-text"><%= product.shortDescription || (product.description ? product.description.substring(0, 100) + '...' : 'No description available') %></p>
+              <% if (product.price && product.price > 0) { %>
+                <p class="text-primary fw-bold mb-2">$<%= product.price.toFixed(2) %></p>
+              <% } %>
+              <a href="/products/<%= product.slug %>" class="btn btn-primary">View Product</a>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="col-12">
+        <p class="text-center text-muted">No products available at this time.</p>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/public-footer') %>
+

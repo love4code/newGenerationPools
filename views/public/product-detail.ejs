@@ -1,0 +1,349 @@
+<%- include('../partials/public-header') %>
+
+<div class="container py-5">
+  <div class="row">
+    <div class="col-lg-8">
+      <h1><%= product.name %></h1>
+      <% if (product.shortDescription) { %>
+        <p class="lead"><%= product.shortDescription %></p>
+      <% } %>
+      
+      <% if (product.featuredImage) { %>
+        <img src="<%= product.featuredImage.mediumPath %>" class="img-fluid rounded mb-4" alt="<%= product.featuredImage.altText || product.name %>" style="max-height: 400px; width: auto; object-fit: cover;">
+      <% } %>
+      
+      <div class="mb-4">
+        <%= product.description.replace(/\n/g, '<br>') %>
+      </div>
+      
+      <% if (product.sizes && product.sizes.length > 0) { %>
+        <div class="mb-4">
+          <h5>Available Sizes:</h5>
+          <div class="d-flex flex-wrap gap-2">
+            <% product.sizes.forEach(size => { %>
+              <span class="badge bg-primary" style="font-size: 1rem; padding: 0.5em 0.75em;"><%= size %></span>
+            <% }); %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+    <div class="col-lg-4">
+      <div class="card sticky-top order-form-card">
+        <div class="card-body">
+          <% if (product.price && product.price > 0) { %>
+            <h3 class="text-primary mb-3">$<%= product.price.toFixed(2) %></h3>
+          <% } %>
+          <h5 class="mb-3">Order This Product</h5>
+          
+          <% if (typeof error !== 'undefined' && error.length > 0) { %>
+            <div class="alert alert-danger alert-dismissible fade show">
+              <%= error[0] %>
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          <% } %>
+          
+          <% if (typeof success !== 'undefined' && success.length > 0) { %>
+            <div class="alert alert-success alert-dismissible fade show">
+              <%= success[0] %>
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          <% } %>
+          
+          <form method="POST" action="/products/<%= product.slug %>/order" id="orderForm">
+            <input type="hidden" name="productId" value="<%= product._id %>">
+            <input type="hidden" name="productName" value="<%= product.name %>">
+            
+            <% if (product.sizes && product.sizes.length > 0) { %>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Select Sizes:</label>
+                <div class="size-selection-container">
+                  <div class="selected-sizes mb-2" id="selectedSizes">
+                    <!-- Selected sizes will appear here as tags -->
+                  </div>
+                  <div class="size-options">
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                      <% product.sizes.forEach(size => { %>
+                        <span class="badge bg-secondary size-option" data-size="<%= size %>" style="cursor: pointer; font-size: 0.9rem; padding: 0.5em 0.75em;">
+                          <%= size %>
+                        </span>
+                      <% }); %>
+                    </div>
+                  </div>
+                  <div id="sizeInputsContainer">
+                    <!-- Hidden inputs for selected sizes will be generated here -->
+                  </div>
+                </div>
+              </div>
+            <% } %>
+            
+            <div class="mb-3">
+              <label for="name" class="form-label">Name *</label>
+              <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="email" class="form-label">Email *</label>
+              <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="phone" class="form-label">Phone *</label>
+              <input type="tel" class="form-control" id="phone" name="phone" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="address" class="form-label">Address</label>
+              <input type="text" class="form-control" id="address" name="address">
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="city" class="form-label">City</label>
+                <input type="text" class="form-control" id="city" name="city">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="state" class="form-label">State</label>
+                <input type="text" class="form-control" id="state" name="state">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="zipCode" class="form-label">Zip Code</label>
+                <input type="text" class="form-control" id="zipCode" name="zipCode">
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="message" class="form-label">Message</label>
+              <textarea class="form-control" id="message" name="message" rows="3" placeholder="Any additional information..."></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100 mb-2">
+              <i class="bi bi-cart-plus"></i> Submit Order
+            </button>
+            <a href="/products" class="btn btn-outline-secondary w-100">View All Products</a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .order-form-card {
+    z-index: 1010;
+  }
+  
+  @media (max-width: 576px) {
+    .order-form-card {
+      position: relative !important;
+      top: auto !important;
+      margin-top: 2rem;
+    }
+  }
+  
+  .size-selection-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    background-color: #f8f9fa;
+  }
+  
+  .size-option {
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+  
+  .size-option:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  
+  .size-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.875rem;
+    padding: 0.35em 0.65em;
+  }
+  
+  .size-tag .btn-close {
+    margin-left: 0.25rem;
+    opacity: 0.8;
+    font-size: 0.65em;
+  }
+  
+  .size-tag .btn-close:hover {
+    opacity: 1;
+  }
+  
+  .selected-sizes {
+    min-height: 2rem;
+    padding: 0.5rem;
+    background-color: white;
+    border-radius: 0.25rem;
+    border: 1px solid #ced4da;
+    margin-bottom: 0.5rem;
+  }
+  
+  .size-option.selected {
+    background-color: #0d6efd !important;
+    color: white;
+  }
+</style>
+
+<script>
+  // Fix form positioning to account for navbar height
+  (function() {
+    function updateFormPosition() {
+      const navbar = document.querySelector('.navbar');
+      const orderForm = document.querySelector('.order-form-card');
+      
+      if (navbar && orderForm) {
+        // Get the actual height of the navbar
+        const navbarRect = navbar.getBoundingClientRect();
+        const navbarHeight = navbarRect.height;
+        const padding = 30; // Increased padding for better spacing
+        const topValue = navbarHeight + padding;
+        
+        // Only apply if on larger screens (not mobile)
+        if (window.innerWidth > 576) {
+          orderForm.style.setProperty('top', topValue + 'px', 'important');
+          orderForm.style.setProperty('z-index', '1010', 'important');
+        } else {
+          orderForm.style.setProperty('top', 'auto', 'important');
+        }
+      }
+    }
+    
+    // Wait for DOM to be fully loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        // Wait a bit more for navbar to render
+        setTimeout(updateFormPosition, 100);
+      });
+    } else {
+      setTimeout(updateFormPosition, 100);
+    }
+    
+    // Update on scroll (in case navbar height changes)
+    let scrollTimer;
+    window.addEventListener('scroll', function() {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(updateFormPosition, 100);
+    });
+    
+    // Update on resize
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(updateFormPosition, 250);
+    });
+    
+    // Update when navbar collapses/expands (for responsive)
+    const navbarToggler = document.querySelector('.navbar-toggler');
+    if (navbarToggler) {
+      navbarToggler.addEventListener('click', function() {
+        setTimeout(updateFormPosition, 400); // Wait for collapse animation
+      });
+    }
+    
+    // Also update after a short delay to ensure everything is rendered
+    setTimeout(updateFormPosition, 500);
+  })();
+  
+  // Size selector functionality for order form
+  (function() {
+    <% if (product.sizes && product.sizes.length > 0) { %>
+      const selectedSizes = new Set();
+      const selectedSizesContainer = document.getElementById('selectedSizes');
+      const sizeInputsContainer = document.getElementById('sizeInputsContainer');
+
+      // Update hidden inputs
+      function updateSizeInputs() {
+        // Clear existing hidden inputs
+        sizeInputsContainer.querySelectorAll('input[name="sizes"]').forEach(input => input.remove());
+        
+        // Add hidden inputs for each selected size
+        selectedSizes.forEach(sizeValue => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'sizes';
+          input.value = sizeValue;
+          sizeInputsContainer.appendChild(input);
+        });
+      }
+
+      // Update size option badges
+      function updateSizeOptionBadges() {
+        document.querySelectorAll('.size-option').forEach(option => {
+          const size = option.getAttribute('data-size');
+          if (selectedSizes.has(size)) {
+            option.classList.add('selected');
+            option.classList.remove('bg-secondary');
+            option.classList.add('bg-primary');
+          } else {
+            option.classList.remove('selected');
+            option.classList.remove('bg-primary');
+            option.classList.add('bg-secondary');
+          }
+        });
+      }
+
+      // Add size tag to selected sizes display
+      function addSizeTag(size) {
+        if (selectedSizes.has(size)) return;
+        
+        selectedSizes.add(size);
+        
+        const tag = document.createElement('span');
+        tag.className = 'badge bg-primary size-tag me-2 mb-2';
+        tag.setAttribute('data-size', size);
+        tag.innerHTML = `${size}<button type="button" class="btn-close btn-close-white" aria-label="Remove"></button>`;
+        
+        // Add remove functionality
+        const removeBtn = tag.querySelector('.btn-close');
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          removeSize(size);
+        });
+        
+        selectedSizesContainer.appendChild(tag);
+        updateSizeInputs();
+        updateSizeOptionBadges();
+      }
+
+      // Remove size tag
+      function removeSize(size) {
+        if (!selectedSizes.has(size)) return;
+        
+        selectedSizes.delete(size);
+        
+        // Remove tag from UI
+        const tag = selectedSizesContainer.querySelector(`.size-tag[data-size="${size}"]`);
+        if (tag) {
+          tag.remove();
+        }
+        
+        updateSizeInputs();
+        updateSizeOptionBadges();
+      }
+
+      // Handle size option clicks
+      document.querySelectorAll('.size-option').forEach(option => {
+        option.addEventListener('click', () => {
+          const size = option.getAttribute('data-size');
+          if (selectedSizes.has(size)) {
+            removeSize(size);
+          } else {
+            addSizeTag(size);
+          }
+        });
+      });
+
+      // Initialize
+      updateSizeInputs();
+      updateSizeOptionBadges();
+    <% } %>
+  })();
+</script>
+
+<%- include('../partials/public-footer') %>
+
