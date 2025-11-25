@@ -17,7 +17,7 @@ exports.list = async (req, res) => {
 // Show create form
 exports.createForm = async (req, res) => {
   try {
-    const images = await Image.find().sort({ createdAt: -1 });
+    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
     res.render('admin/services/form', { title: 'Create Service', service: null, images });
   } catch (error) {
     console.error('Create form error:', error);
@@ -62,7 +62,7 @@ exports.create = async (req, res) => {
 exports.editForm = async (req, res) => {
   try {
     const service = await Service.findById(req.params.id).populate('iconImage heroImage');
-    const images = await Image.find().sort({ createdAt: -1 });
+    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
     res.render('admin/services/form', { title: 'Edit Service', service, images });
   } catch (error) {
     console.error('Edit form error:', error);

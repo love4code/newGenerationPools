@@ -21,6 +21,7 @@ exports.dashboard = async (req, res) => {
       .limit(5);
 
     const recentImages = await Image.find()
+      .select('-originalData -thumbnailData -mediumData -largeData')
       .sort({ createdAt: -1 })
       .limit(5);
 

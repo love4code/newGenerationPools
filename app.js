@@ -18,16 +18,30 @@ const app = express()
 const PORT = process.env.PORT || 3000
 
 // Connect to MongoDB
-mongoose
-  .connect(
-    process.env.MONGODB_URI || 'mongodb://localhost:27017/newGenerationPools',
-    {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    }
+const mongoUri =
+  process.env.MONGODB_URI || 'mongodb://localhost:27017/newGenerationPools'
+if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
+  console.error(
+    'ERROR: MONGODB_URI environment variable is required in production!'
   )
+  process.exit(1)
+}
+
+mongoose
+  .connect(mongoUri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  })
   .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err))
+  .catch(err => {
+    console.error('MongoDB connection error:', err)
+    if (process.env.NODE_ENV === 'production') {
+      console.error(
+        'Fatal: Cannot connect to MongoDB in production. Exiting...'
+      )
+      process.exit(1)
+    }
+  })
 
 // View engine setup
 app.set('view engine', 'ejs')
@@ -39,6 +53,9 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static(path.join(__dirname, 'public')))
 
+// Trust proxy (required for Heroku)
+app.set('trust proxy', 1)
+
 // Session configuration
 const isProduction = process.env.NODE_ENV === 'production'
 app.use(
@@ -49,7 +66,7 @@ app.use(
     saveUninitialized: false,
     name: 'ngp.session', // Custom session name
     cookie: {
-      secure: isProduction && process.env.FORCE_HTTPS !== 'false', // Only secure in production with HTTPS
+      secure: isProduction, // Secure cookies in production (HTTPS)
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax'
@@ -105,8 +122,8 @@ app.use((err, req, res, next) => {
 })
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`)
 })
 
 module.exports = app

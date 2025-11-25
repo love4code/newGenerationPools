@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const publicController = require('../controllers/publicController');
+const mediaController = require('../controllers/mediaController');
+
+// Image serving (must be before other routes to avoid conflicts)
+router.get('/api/images/:id/:size', mediaController.serve);
 
 // Home
 router.get('/', publicController.home);

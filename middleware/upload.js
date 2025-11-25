@@ -1,29 +1,16 @@
 const multer = require('multer');
-const path = require('path');
 const sharp = require('sharp');
-const fs = require('fs').promises;
 const Image = require('../models/Image');
 
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../public/uploads/original');
-    await fs.mkdir(uploadPath, { recursive: true });
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configure multer to use memory storage (no filesystem writes)
+const storage = multer.memoryStorage();
 
 // File filter
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
-  if (mimetype && extname) {
+  if (mimetype) {
     return cb(null, true);
   } else {
     cb(new Error('Only image files are allowed!'));
@@ -36,40 +23,28 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-// Process uploaded image and create 3 sizes
-const processImage = async (filePath, filename) => {
-  const baseName = path.parse(filename).name;
-  const ext = path.parse(filename).ext;
-  
-  const thumbnailPath = path.join(__dirname, '../public/uploads/thumbnails', `${baseName}${ext}`);
-  const mediumPath = path.join(__dirname, '../public/uploads/medium', `${baseName}${ext}`);
-  const largePath = path.join(__dirname, '../public/uploads/large', `${baseName}${ext}`);
-
-  // Ensure directories exist
-  await fs.mkdir(path.dirname(thumbnailPath), { recursive: true });
-  await fs.mkdir(path.dirname(mediumPath), { recursive: true });
-  await fs.mkdir(path.dirname(largePath), { recursive: true });
-
+// Process uploaded image buffer and create 3 sizes in memory
+const processImage = async (buffer, mimeType) => {
   // Create thumbnail (150x150)
-  await sharp(filePath)
+  const thumbnailBuffer = await sharp(buffer)
     .resize(150, 150, { fit: 'cover' })
-    .toFile(thumbnailPath);
+    .toBuffer();
 
   // Create medium (800px wide)
-  await sharp(filePath)
+  const mediumBuffer = await sharp(buffer)
     .resize(800, null, { withoutEnlargement: true })
-    .toFile(mediumPath);
+    .toBuffer();
 
   // Create large (1600px wide)
-  await sharp(filePath)
+  const largeBuffer = await sharp(buffer)
     .resize(1600, null, { withoutEnlargement: true })
-    .toFile(largePath);
+    .toBuffer();
 
   return {
-    originalPath: `/uploads/original/${filename}`,
-    thumbnailPath: `/uploads/thumbnails/${baseName}${ext}`,
-    mediumPath: `/uploads/medium/${baseName}${ext}`,
-    largePath: `/uploads/large/${baseName}${ext}`
+    originalData: buffer,
+    thumbnailData: thumbnailBuffer,
+    mediumData: mediumBuffer,
+    largeData: largeBuffer
   };
 };
 
@@ -80,15 +55,16 @@ const uploadAndProcessImage = async (req, res, next) => {
       return next();
     }
 
-    const processedPaths = await processImage(req.file.path, req.file.filename);
+    const processedImages = await processImage(req.file.buffer, req.file.mimetype);
     
     // Save to database
     const image = new Image({
       filename: req.file.originalname,
-      originalPath: processedPaths.originalPath,
-      thumbnailPath: processedPaths.thumbnailPath,
-      mediumPath: processedPaths.mediumPath,
-      largePath: processedPaths.largePath,
+      mimeType: req.file.mimetype,
+      originalData: processedImages.originalData,
+      thumbnailData: processedImages.thumbnailData,
+      mediumData: processedImages.mediumData,
+      largeData: processedImages.largeData,
       altText: req.body.altText || '',
       title: req.body.title || req.file.originalname,
       category: req.body.category || 'general'
@@ -115,21 +91,22 @@ const uploadAndProcessMultipleImages = async (req, res, next) => {
     
     for (const file of req.files) {
       try {
-        // Check if file exists
-        if (!file || !file.path) {
+        // Check if file exists and has buffer
+        if (!file || !file.buffer) {
           console.error('Invalid file:', file);
           continue;
         }
 
-        const processedPaths = await processImage(file.path, file.filename);
+        const processedImages = await processImage(file.buffer, file.mimetype);
         
         // Use filename as title if no title provided
         const image = new Image({
           filename: file.originalname || 'unnamed',
-          originalPath: processedPaths.originalPath,
-          thumbnailPath: processedPaths.thumbnailPath,
-          mediumPath: processedPaths.mediumPath,
-          largePath: processedPaths.largePath,
+          mimeType: file.mimetype,
+          originalData: processedImages.originalData,
+          thumbnailData: processedImages.thumbnailData,
+          mediumData: processedImages.mediumData,
+          largeData: processedImages.largeData,
           altText: '',
           title: file.originalname || 'Untitled',
           category: category

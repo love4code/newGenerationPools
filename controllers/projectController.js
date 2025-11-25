@@ -18,7 +18,7 @@ exports.list = async (req, res) => {
 // Show create form
 exports.createForm = async (req, res) => {
   try {
-    const images = await Image.find().sort({ createdAt: -1 });
+    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
     res.render('admin/projects/form', { title: 'Create Project', project: null, images });
   } catch (error) {
     console.error('Create form error:', error);
@@ -34,7 +34,7 @@ exports.create = async (req, res) => {
     // Validate required fields
     if (!title || !description) {
       req.flash('error', 'Title and description are required');
-      const images = await Image.find().sort({ createdAt: -1 });
+      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
       return res.render('admin/projects/form', { 
         title: 'Create Project', 
         project: null, 
@@ -101,7 +101,7 @@ exports.create = async (req, res) => {
     
     // Re-render form with error and preserve input
     try {
-      const images = await Image.find().sort({ createdAt: -1 });
+      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
       res.render('admin/projects/form', { 
         title: 'Create Project', 
         project: null, 
@@ -120,7 +120,7 @@ exports.create = async (req, res) => {
 exports.editForm = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id).populate('images featuredImage');
-    const images = await Image.find().sort({ createdAt: -1 });
+    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
     res.render('admin/projects/form', { title: 'Edit Project', project, images });
   } catch (error) {
     console.error('Edit form error:', error);
