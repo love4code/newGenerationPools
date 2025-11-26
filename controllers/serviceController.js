@@ -30,21 +30,48 @@ exports.create = async (req, res) => {
   try {
     const { name, shortDescription, description, iconImage, heroImage, displayOrder, isActive, seoTitle, seoDescription, seoKeywords, seoCanonicalUrl, seoIndex } = req.body;
     
+    // Validate required fields
+    if (!name || !description) {
+      req.flash('error', 'Name and description are required');
+      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+      return res.render('admin/services/form', {
+        title: 'Create Service',
+        service: null,
+        images,
+        formData: req.body
+      });
+    }
+    
+    const slugify = require('slugify');
+    let serviceSlug = slugify(name, { lower: true, strict: true });
+    let slugExists = await Service.findOne({ slug: serviceSlug });
+    let counter = 1;
+    while (slugExists) {
+      serviceSlug = `${slugify(name, { lower: true, strict: true })}-${counter}`;
+      slugExists = await Service.findOne({ slug: serviceSlug });
+      counter++;
+    }
+    
     const serviceData = {
-      name,
-      shortDescription,
-      description,
+      name: name.trim(),
+      slug: serviceSlug,
+      shortDescription: shortDescription ? shortDescription.trim() : '',
+      description: description.trim(),
       displayOrder: parseInt(displayOrder) || 0,
       isActive: isActive === 'on',
-      seoTitle,
-      seoDescription,
-      seoKeywords: seoKeywords ? seoKeywords.split(',').map(k => k.trim()) : [],
-      seoCanonicalUrl,
+      seoTitle: seoTitle ? seoTitle.trim() : '',
+      seoDescription: seoDescription ? seoDescription.trim() : '',
+      seoKeywords: seoKeywords ? seoKeywords.split(',').map(k => k.trim()).filter(k => k) : [],
+      seoCanonicalUrl: seoCanonicalUrl ? seoCanonicalUrl.trim() : '',
       seoIndex: seoIndex !== 'false'
     };
 
-    if (iconImage) serviceData.iconImage = iconImage;
-    if (heroImage) serviceData.heroImage = heroImage;
+    if (iconImage && iconImage !== '') {
+      serviceData.iconImage = iconImage;
+    }
+    if (heroImage && heroImage !== '') {
+      serviceData.heroImage = heroImage;
+    }
 
     const service = new Service(serviceData);
     await service.save();
@@ -53,8 +80,22 @@ exports.create = async (req, res) => {
     res.redirect('/admin/services');
   } catch (error) {
     console.error('Create service error:', error);
-    req.flash('error', 'Failed to create service');
-    res.redirect('/admin/services/new');
+    const errorMessage = error.message || 'Failed to create service';
+    req.flash('error', errorMessage);
+    
+    // Re-render form with error and preserve input
+    try {
+      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+      res.render('admin/services/form', { 
+        title: 'Create Service', 
+        service: null, 
+        images,
+        formData: req.body // Preserve form data
+      });
+    } catch (renderError) {
+      console.error('Error rendering form:', renderError);
+      res.redirect('/admin/services/new');
+    }
   }
 };
 

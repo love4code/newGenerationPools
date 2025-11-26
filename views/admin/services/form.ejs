@@ -1,5 +1,19 @@
 <%- include('../../partials/admin-header') %>
 
+<% if (typeof error !== 'undefined' && error.length > 0) { %>
+  <div class="alert alert-danger alert-dismissible fade show">
+    <%= error[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
 <h1 class="mb-4"><%= service ? 'Edit' : 'Create' %> Service</h1>
 
 <form method="POST" action="<%= service ? `/admin/services/${service._id}` : '/admin/services' %>">
@@ -9,15 +23,15 @@
         <div class="card-body">
           <div class="mb-3">
             <label for="name" class="form-label">Name *</label>
-            <input type="text" class="form-control" id="name" name="name" value="<%= service ? service.name : '' %>" required>
+            <input type="text" class="form-control" id="name" name="name" value="<%= service ? service.name : (typeof formData !== 'undefined' && formData.name ? formData.name : '') %>" required>
           </div>
           <div class="mb-3">
             <label for="shortDescription" class="form-label">Short Description</label>
-            <textarea class="form-control" id="shortDescription" name="shortDescription" rows="2"><%= service ? service.shortDescription : '' %></textarea>
+            <textarea class="form-control" id="shortDescription" name="shortDescription" rows="2"><%= service ? service.shortDescription : (typeof formData !== 'undefined' && formData.shortDescription ? formData.shortDescription : '') %></textarea>
           </div>
           <div class="mb-3">
             <label for="description" class="form-label">Description *</label>
-            <textarea class="form-control" id="description" name="description" rows="10" required><%= service ? service.description : '' %></textarea>
+            <textarea class="form-control" id="description" name="description" rows="10" required><%= service ? service.description : (typeof formData !== 'undefined' && formData.description ? formData.description : '') %></textarea>
           </div>
         </div>
       </div>
@@ -27,19 +41,19 @@
         <div class="card-body">
           <div class="mb-3">
             <label for="seoTitle" class="form-label">SEO Title</label>
-            <input type="text" class="form-control" id="seoTitle" name="seoTitle" value="<%= service && service.seoTitle ? service.seoTitle : '' %>">
+            <input type="text" class="form-control" id="seoTitle" name="seoTitle" value="<%= service && service.seoTitle ? service.seoTitle : (typeof formData !== 'undefined' && formData.seoTitle ? formData.seoTitle : '') %>">
           </div>
           <div class="mb-3">
             <label for="seoDescription" class="form-label">SEO Description</label>
-            <textarea class="form-control" id="seoDescription" name="seoDescription" rows="3"><%= service && service.seoDescription ? service.seoDescription : '' %></textarea>
+            <textarea class="form-control" id="seoDescription" name="seoDescription" rows="3"><%= service && service.seoDescription ? service.seoDescription : (typeof formData !== 'undefined' && formData.seoDescription ? formData.seoDescription : '') %></textarea>
           </div>
           <div class="mb-3">
             <label for="seoKeywords" class="form-label">SEO Keywords (comma-separated)</label>
-            <input type="text" class="form-control" id="seoKeywords" name="seoKeywords" value="<%= service && service.seoKeywords ? service.seoKeywords.join(', ') : '' %>">
+            <input type="text" class="form-control" id="seoKeywords" name="seoKeywords" value="<%= service && service.seoKeywords ? service.seoKeywords.join(', ') : (typeof formData !== 'undefined' && formData.seoKeywords ? formData.seoKeywords : '') %>">
           </div>
           <div class="mb-3">
             <label for="seoCanonicalUrl" class="form-label">Canonical URL</label>
-            <input type="url" class="form-control" id="seoCanonicalUrl" name="seoCanonicalUrl" value="<%= service && service.seoCanonicalUrl ? service.seoCanonicalUrl : '' %>">
+            <input type="url" class="form-control" id="seoCanonicalUrl" name="seoCanonicalUrl" value="<%= service && service.seoCanonicalUrl ? service.seoCanonicalUrl : (typeof formData !== 'undefined' && formData.seoCanonicalUrl ? formData.seoCanonicalUrl : '') %>">
           </div>
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="seoIndex" name="seoIndex" value="true" <%= !service || service.seoIndex !== false ? 'checked' : '' %>>
@@ -55,10 +69,10 @@
         <div class="card-body">
           <div class="mb-3">
             <label for="displayOrder" class="form-label">Display Order</label>
-            <input type="number" class="form-control" id="displayOrder" name="displayOrder" value="<%= service ? service.displayOrder : 0 %>">
+            <input type="number" class="form-control" id="displayOrder" name="displayOrder" value="<%= service ? service.displayOrder : (typeof formData !== 'undefined' && formData.displayOrder ? formData.displayOrder : 0) %>">
           </div>
           <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" id="isActive" name="isActive" <%= !service || service.isActive ? 'checked' : '' %>>
+            <input class="form-check-input" type="checkbox" id="isActive" name="isActive" <%= !service || service.isActive || (typeof formData !== 'undefined' && formData.isActive === 'on') ? 'checked' : '' %>>
             <label class="form-check-label" for="isActive">Active</label>
           </div>
         </div>
@@ -74,7 +88,15 @@
             <option value="">None</option>
             <% if (images) { %>
               <% images.forEach(image => { %>
-                <option value="<%= image._id %>" <%= service && service.iconImage && service.iconImage._id.toString() === image._id.toString() ? 'selected' : '' %>>
+                <% 
+                  let isSelected = false;
+                  if (service && service.iconImage && service.iconImage._id.toString() === image._id.toString()) {
+                    isSelected = true;
+                  } else if (typeof formData !== 'undefined' && formData.iconImage && formData.iconImage === image._id.toString()) {
+                    isSelected = true;
+                  }
+                %>
+                <option value="<%= image._id %>" <%= isSelected ? 'selected' : '' %>>
                   <%= image.title || image.filename %>
                 </option>
               <% }); %>
@@ -93,7 +115,15 @@
             <option value="">None</option>
             <% if (images) { %>
               <% images.forEach(image => { %>
-                <option value="<%= image._id %>" <%= service && service.heroImage && service.heroImage._id.toString() === image._id.toString() ? 'selected' : '' %>>
+                <% 
+                  let isSelected = false;
+                  if (service && service.heroImage && service.heroImage._id.toString() === image._id.toString()) {
+                    isSelected = true;
+                  } else if (typeof formData !== 'undefined' && formData.heroImage && formData.heroImage === image._id.toString()) {
+                    isSelected = true;
+                  }
+                %>
+                <option value="<%= image._id %>" <%= isSelected ? 'selected' : '' %>>
                   <%= image.title || image.filename %>
                 </option>
               <% }); %>

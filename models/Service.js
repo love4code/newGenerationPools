@@ -68,7 +68,7 @@ const serviceSchema = new mongoose.Schema({
 
 // Auto-generate slug from name
 serviceSchema.pre('save', function(next) {
-  if (this.isModified('name') || this.isNew) {
+  if ((this.isModified('name') || this.isNew) && !this.slug) {
     this.slug = slugify(this.name, { lower: true, strict: true });
   }
   this.updatedAt = Date.now();

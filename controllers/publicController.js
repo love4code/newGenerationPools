@@ -81,7 +81,7 @@ exports.home = async (req, res) => {
     })
       .populate('featuredImage images')
       .sort({ displayOrder: 1, createdAt: -1 })
-      .limit(4);
+      .limit(3);
 
     // Get recent projects (different from featured, or more recent)
     const recentProjects = await Project.find({ 
