@@ -2,6 +2,7 @@ require('dotenv').config()
 const express = require('express')
 const mongoose = require('mongoose')
 const session = require('express-session')
+const MongoStore = require('connect-mongo')
 const morgan = require('morgan')
 const path = require('path')
 const flash = require('connect-flash')
@@ -62,11 +63,15 @@ app.use(
   session({
     secret:
       process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
-    resave: true, // Ensure session is saved on every request
-    saveUninitialized: false,
+    resave: false, // Don't save session if unmodified
+    saveUninitialized: false, // Don't create session until something stored
     name: 'ngp.session', // Custom session name
+    store: MongoStore.create({
+      mongoUrl: mongoUri,
+      touchAfter: 24 * 3600 // Lazy session update (24 hours)
+    }),
     cookie: {
-      secure: isProduction, // Secure cookies in production (HTTPS)
+      secure: isProduction, // Secure cookies in production (HTTPS) - works with Heroku proxy
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax'
