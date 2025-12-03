@@ -6,6 +6,14 @@
   const keywords = seoData.keywords || [];
   const canonicalUrl = seoData.canonicalUrl || '';
   let ogImage = seoData.ogImage || '';
+  
+  // Fallback to defaultOpenGraphImage from settings if no ogImage is provided
+  if (!ogImage && typeof settings !== 'undefined' && settings && settings.defaultOpenGraphImage) {
+    if (settings.defaultOpenGraphImage.largePath) {
+      ogImage = settings.defaultOpenGraphImage.largePath;
+    }
+  }
+  
   // Make ogImage a full URL if it's a relative path
   if (ogImage && ogImage.startsWith('/')) {
     ogImage = (typeof baseUrl !== 'undefined' ? baseUrl : '') + ogImage;

@@ -44,6 +44,12 @@ const themePresets = {
 // Helper to get settings with theme
 const getSettingsWithTheme = async () => {
   const settings = await GlobalSettings.getSettings();
+  
+  // Populate defaultOpenGraphImage if it exists
+  if (settings.defaultOpenGraphImage) {
+    await settings.populate('defaultOpenGraphImage');
+  }
+  
   if (!settings.theme) {
     settings.theme = {
       preset: 'default',
@@ -69,6 +75,7 @@ const getSettingsWithTheme = async () => {
 exports.home = async (req, res) => {
   try {
     const settings = await getSettingsWithTheme();
+    
     const services = await Service.find({ isActive: true })
       .populate('iconImage')
       .sort({ displayOrder: 1 })
@@ -94,6 +101,17 @@ exports.home = async (req, res) => {
 
     const baseUrl = req.protocol + '://' + req.get('host');
     
+    // Set SEO data with defaultOpenGraphImage (logo) as ogImage
+    const seo = {
+      title: settings.defaultMetaTitle,
+      description: settings.defaultMetaDescription,
+      ogImage: settings.defaultOpenGraphImage && settings.defaultOpenGraphImage.largePath 
+        ? baseUrl + settings.defaultOpenGraphImage.largePath 
+        : '',
+      ogUrl: baseUrl + req.originalUrl,
+      canonicalUrl: baseUrl + req.originalUrl
+    };
+    
     // Debug: Log counts
     console.log('Recent projects count:', recentProjects ? recentProjects.length : 0);
     console.log('Products count:', products ? products.length : 0);
@@ -101,6 +119,7 @@ exports.home = async (req, res) => {
     res.render('public/home', {
       title: settings.defaultMetaTitle,
       description: settings.defaultMetaDescription,
+      seo,
       services,
       products: products || [],
       recentProjects: recentProjects || [],
