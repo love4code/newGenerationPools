@@ -7,7 +7,8 @@ exports.list = async (req, res) => {
     // Exclude buffer data to save memory - only select metadata
     const images = await Image.find()
       .select('-originalData -thumbnailData -mediumData -largeData')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .allowDiskUse(true);
     res.render('admin/media/list', { title: 'Media Library', images });
   } catch (error) {
     console.error('Media list error:', error);
@@ -142,7 +143,8 @@ exports.apiList = async (req, res) => {
     // Exclude buffer data to save bandwidth - only select metadata
     const images = await Image.find()
       .select('-originalData -thumbnailData -mediumData -largeData')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .allowDiskUse(true);
     res.json(images);
   } catch (error) {
     console.error('API list error:', error);

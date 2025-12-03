@@ -48,6 +48,9 @@ const imageSchema = new mongoose.Schema({
   }
 });
 
+// Add index on createdAt for efficient sorting
+imageSchema.index({ createdAt: -1 });
+
 // Virtual properties for backward compatibility with path-based access
 imageSchema.virtual('originalPath').get(function() {
   return `/api/images/${this._id}/original`;

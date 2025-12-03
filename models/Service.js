@@ -24,6 +24,10 @@ const serviceSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Image'
   },
+  iconBootstrap: {
+    type: String,
+    trim: true
+  },
   heroImage: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Image'

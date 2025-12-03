@@ -23,7 +23,9 @@ exports.dashboard = async (req, res) => {
     const recentImages = await Image.find()
       .select('-originalData -thumbnailData -mediumData -largeData')
       .sort({ createdAt: -1 })
-      .limit(5);
+      .limit(5)
+      .lean()
+      .allowDiskUse(true);
 
     res.render('admin/dashboard', {
       title: 'Admin Dashboard',
@@ -38,7 +40,12 @@ exports.dashboard = async (req, res) => {
     });
   } catch (error) {
     console.error('Dashboard error:', error);
-    res.status(500).render('admin/error', { error: 'Failed to load dashboard' });
+    console.error('Dashboard error message:', error.message);
+    console.error('Dashboard error stack:', error.stack);
+    res.status(500).render('admin/error', { 
+      error: 'Failed to load dashboard',
+      errorDetails: process.env.NODE_ENV === 'development' ? error.message + '\n\n' + error.stack : undefined
+    });
   }
 };
 

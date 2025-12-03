@@ -3,6 +3,11 @@
 <div class="alert alert-danger">
   <h4>Error</h4>
   <p><%= typeof error !== 'undefined' ? error : 'An error occurred' %></p>
+  <% if (typeof errorDetails !== 'undefined' && errorDetails) { %>
+    <hr>
+    <p><strong>Details:</strong></p>
+    <pre class="small"><%= errorDetails %></pre>
+  <% } %>
 </div>
 <a href="/admin" class="btn btn-primary">Back to Dashboard</a>
 

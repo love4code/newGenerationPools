@@ -18,7 +18,7 @@ exports.list = async (req, res) => {
 // Show create form
 exports.createForm = async (req, res) => {
   try {
-    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 }).allowDiskUse(true);
     res.render('admin/products/form', { title: 'Create Product', product: null, images });
   } catch (error) {
     console.error('Create form error:', error);
@@ -34,7 +34,7 @@ exports.create = async (req, res) => {
     // Validate required fields
     if (!name || !description) {
       req.flash('error', 'Name and description are required');
-      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 }).allowDiskUse(true);
       return res.render('admin/products/form', {
         title: 'Create Product',
         product: null,
@@ -104,7 +104,7 @@ exports.create = async (req, res) => {
     req.flash('error', errorMessage);
     
     try {
-      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 }).allowDiskUse(true);
       res.render('admin/products/form', {
         title: 'Create Product',
         product: null,
@@ -123,7 +123,7 @@ exports.create = async (req, res) => {
 exports.editForm = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id).populate('images featuredImage');
-    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 }).allowDiskUse(true);
     res.render('admin/products/form', { title: 'Edit Product', product, images });
   } catch (error) {
     console.error('Edit form error:', error);

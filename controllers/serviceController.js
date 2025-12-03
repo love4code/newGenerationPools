@@ -17,7 +17,7 @@ exports.list = async (req, res) => {
 // Show create form
 exports.createForm = async (req, res) => {
   try {
-    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 }).allowDiskUse(true);
     res.render('admin/services/form', { title: 'Create Service', service: null, images });
   } catch (error) {
     console.error('Create form error:', error);
@@ -28,12 +28,12 @@ exports.createForm = async (req, res) => {
 // Create service
 exports.create = async (req, res) => {
   try {
-    const { name, shortDescription, description, iconImage, heroImage, displayOrder, isActive, seoTitle, seoDescription, seoKeywords, seoCanonicalUrl, seoIndex } = req.body;
+    const { name, shortDescription, description, iconImage, iconBootstrap, heroImage, displayOrder, isActive, seoTitle, seoDescription, seoKeywords, seoCanonicalUrl, seoIndex } = req.body;
     
     // Validate required fields
     if (!name || !description) {
       req.flash('error', 'Name and description are required');
-      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 }).allowDiskUse(true);
       return res.render('admin/services/form', {
         title: 'Create Service',
         service: null,
@@ -69,6 +69,9 @@ exports.create = async (req, res) => {
     if (iconImage && iconImage !== '') {
       serviceData.iconImage = iconImage;
     }
+    if (iconBootstrap && iconBootstrap !== '') {
+      serviceData.iconBootstrap = iconBootstrap.trim();
+    }
     if (heroImage && heroImage !== '') {
       serviceData.heroImage = heroImage;
     }
@@ -85,7 +88,7 @@ exports.create = async (req, res) => {
     
     // Re-render form with error and preserve input
     try {
-      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+      const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 }).allowDiskUse(true);
       res.render('admin/services/form', { 
         title: 'Create Service', 
         service: null, 
@@ -103,7 +106,7 @@ exports.create = async (req, res) => {
 exports.editForm = async (req, res) => {
   try {
     const service = await Service.findById(req.params.id).populate('iconImage heroImage');
-    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 }).allowDiskUse(true);
     res.render('admin/services/form', { title: 'Edit Service', service, images });
   } catch (error) {
     console.error('Edit form error:', error);
@@ -114,7 +117,7 @@ exports.editForm = async (req, res) => {
 // Update service
 exports.update = async (req, res) => {
   try {
-    const { name, shortDescription, description, iconImage, heroImage, displayOrder, isActive, seoTitle, seoDescription, seoKeywords, seoCanonicalUrl, seoIndex } = req.body;
+    const { name, shortDescription, description, iconImage, iconBootstrap, heroImage, displayOrder, isActive, seoTitle, seoDescription, seoKeywords, seoCanonicalUrl, seoIndex } = req.body;
     
     const serviceData = {
       name,
@@ -130,6 +133,11 @@ exports.update = async (req, res) => {
     };
 
     if (iconImage) serviceData.iconImage = iconImage;
+    if (iconBootstrap && iconBootstrap !== '') {
+      serviceData.iconBootstrap = iconBootstrap.trim();
+    } else {
+      serviceData.iconBootstrap = null;
+    }
     if (heroImage) serviceData.heroImage = heroImage;
 
     await Service.findByIdAndUpdate(req.params.id, serviceData);

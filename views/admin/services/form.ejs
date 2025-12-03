@@ -106,6 +106,34 @@
       </div>
 
       <div class="card mb-3">
+        <div class="card-header">Bootstrap Icon</div>
+        <div class="card-body">
+          <div class="mb-2">
+            <label for="iconBootstrap" class="form-label">Icon Name</label>
+            <div class="input-group">
+              <span class="input-group-text">
+                <% 
+                  const currentIcon = service && service.iconBootstrap ? service.iconBootstrap : (typeof formData !== 'undefined' && formData.iconBootstrap ? formData.iconBootstrap : '');
+                %>
+                <% if (currentIcon) { %>
+                  <i class="bi bi-<%= currentIcon %>"></i>
+                <% } else { %>
+                  <i class="bi bi-circle"></i>
+                <% } %>
+              </span>
+              <input type="text" class="form-control" id="iconBootstrap" name="iconBootstrap" 
+                     placeholder="e.g., tools, wrench, gear" 
+                     value="<%= currentIcon %>">
+              <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#iconPickerModal">
+                <i class="bi bi-search"></i> Browse
+              </button>
+            </div>
+            <small class="text-muted">Enter icon name (without "bi-" prefix) or click Browse to search</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
         <div class="card-header">Hero Image</div>
         <div class="card-body">
           <% if (service && service.heroImage) { %>
@@ -139,6 +167,581 @@
     <a href="/admin/services" class="btn btn-secondary">Cancel</a>
   </div>
 </form>
+
+<!-- Bootstrap Icon Picker Modal -->
+<div class="modal fade" id="iconPickerModal" tabindex="-1" aria-labelledby="iconPickerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="iconPickerModalLabel">Select Bootstrap Icon</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <input type="text" class="form-control" id="iconSearchInput" placeholder="Search icons (e.g., tool, gear, pool, water...)">
+        </div>
+        <div id="iconGrid" class="row g-2" style="max-height: 500px; overflow-y: auto;">
+          <!-- Icons will be dynamically loaded here -->
+        </div>
+        <div id="noIconsFound" class="text-center text-muted py-4" style="display: none;">
+          No icons found matching your search.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .icon-item {
+    cursor: pointer;
+    padding: 10px;
+    text-align: center;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .icon-item:hover {
+    background-color: #f8f9fa;
+    border-color: #0d6efd;
+  }
+  .icon-item.selected {
+    background-color: #0d6efd;
+    color: white;
+  }
+  .icon-item i {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 5px;
+  }
+  .icon-item .icon-name {
+    font-size: 0.75rem;
+    word-break: break-word;
+  }
+</style>
+
+<script>
+  // Common Bootstrap Icons - curated list for service-related icons
+  // Users can also type any Bootstrap icon name directly in the input field
+  const bootstrapIcons = [
+    'tools', 'wrench', 'gear', 'gear-wide', 'nut', 'hammer', 'screwdriver',
+    'droplet', 'droplet-fill', 'water', 'cloud-rain', 'cloud-rain-heavy',
+    'thermometer-sun', 'sun', 'sun-fill', 'moon-stars', 'lightning',
+    'snow', 'snow2', 'snow3',
+    'house', 'house-door', 'house-fill', 'building', 'buildings',
+    'paint-bucket', 'palette', 'palette-fill', 'brush', 'pencil',
+    'scissors', 'ruler', 'ruler-fill',
+    'truck', 'truck-flatbed', 'car-front', 'car-front-fill',
+    'shield-check', 'shield-fill-check', 'shield', 'shield-fill',
+    'check-circle', 'check-circle-fill', 'check-square', 'check-square-fill',
+    'star', 'star-fill', 'star-half',
+    'heart', 'heart-fill', 'hand-thumbs-up', 'hand-thumbs-up-fill',
+    'arrow-right-circle', 'arrow-left-circle', 'arrow-up-circle', 'arrow-down-circle',
+    'play-circle', 'play-circle-fill', 'pause-circle', 'pause-circle-fill',
+    'clock', 'clock-fill', 'alarm', 'alarm-fill', 'calendar', 'calendar-check',
+    'telephone', 'telephone-fill', 'phone', 'phone-fill', 'envelope', 'envelope-fill',
+    'chat-dots', 'chat-dots-fill', 'chat', 'chat-fill', 'chat-left-dots', 'chat-left-dots-fill',
+    'person', 'person-fill', 'people', 'people-fill', 'person-badge', 'person-badge-fill',
+    'briefcase', 'briefcase-fill', 'bag', 'bag-fill', 'cart', 'cart-fill',
+    'credit-card', 'credit-card-fill', 'cash-coin', 'cash-stack',
+    'graph-up', 'graph-up-arrow', 'bar-chart', 'bar-chart-fill', 'pie-chart', 'pie-chart-fill',
+    'pie-chart-fill', 'line-chart', 'activity',
+    'wifi', 'wifi-off', 'router', 'router-fill',
+    'camera', 'camera-fill', 'camera-video', 'camera-video-fill', 'image', 'image-fill',
+    'collection', 'collection-fill', 'images', 'images-fill',
+    'file-earmark', 'file-earmark-fill', 'folder', 'folder-fill', 'folder2', 'folder2-open',
+    'link', 'link-45deg', 'globe', 'globe2',
+    'search', 'search-heart', 'filter', 'funnel', 'funnel-fill',
+    'info-circle', 'info-circle-fill', 'question-circle', 'question-circle-fill',
+    'exclamation-circle', 'exclamation-circle-fill', 'exclamation-triangle', 'exclamation-triangle-fill',
+    'x-circle', 'x-circle-fill', 'x', 'x-square', 'x-square-fill',
+    'plus-circle', 'plus-circle-fill', 'plus', 'plus-square', 'plus-square-fill',
+    'dash-circle', 'dash-circle-fill', 'dash', 'dash-square', 'dash-square-fill',
+    'arrow-repeat', 'arrow-clockwise', 'arrow-counterclockwise', 'arrow-90deg-left', 'arrow-90deg-right',
+    'refresh', 'arrow-left-right', 'arrow-up-down',
+    'layers', 'layers-fill', 'stack', 'grid', 'grid-3x3', 'grid-3x3-gap', 'grid-fill',
+    'list', 'list-ul', 'list-ol', 'list-check', 'list-nested',
+    'menu-button', 'menu-button-wide', 'menu-button-wide-fill', 'menu-down', 'menu-up',
+    'three-dots', 'three-dots-vertical',
+    'caret-up', 'caret-down', 'caret-left', 'caret-right', 'caret-up-fill', 'caret-down-fill',
+    'chevron-up', 'chevron-down', 'chevron-left', 'chevron-right',
+    'skip-backward', 'skip-forward', 'skip-backward-fill', 'skip-forward-fill',
+    'play', 'play-fill', 'pause', 'pause-fill', 'stop', 'stop-fill',
+    'volume-up', 'volume-down', 'volume-mute', 'volume-off',
+    'music-note', 'music-note-beamed', 'music-player', 'music-player-fill',
+    'bookmark', 'bookmark-fill', 'bookmark-star', 'bookmark-star-fill',
+    'flag', 'flag-fill', 'bookmark-heart', 'bookmark-heart-fill',
+    'printer', 'printer-fill', 'file-earmark-pdf', 'file-pdf', 'file-earmark-text', 'file-text',
+    'download', 'download-cloud', 'upload', 'upload-cloud',
+    'save', 'save-fill', 'save2', 'save2-fill', 'folder-symlink', 'folder-symlink-fill',
+    'share', 'share-fill', 'send', 'send-fill',
+    'clipboard', 'clipboard-fill', 'clipboard-check', 'clipboard-check-fill', 'clipboard-data', 'clipboard-data-fill',
+    'lock', 'lock-fill', 'unlock', 'unlock-fill', 'key', 'key-fill',
+    'eye', 'eye-fill', 'eye-slash', 'eye-slash-fill',
+    'hand-index', 'hand-index-fill', 'hand-index-thumb', 'hand-index-thumb-fill',
+    'hand-thumbs-down', 'hand-thumbs-down-fill', 'hand-index-fill',
+    'emoji-smile', 'emoji-smile-fill', 'emoji-heart-eyes', 'emoji-heart-eyes-fill',
+    'fire', 'lightning-charge', 'lightning-charge-fill', 'magic', 'magic-fill',
+    'award', 'award-fill', 'trophy', 'trophy-fill', 'medal', 'medal-fill',
+    'gem', 'diamond', 'diamond-fill', 'gift', 'gift-fill',
+    'box', 'box-seam', 'box-arrow-up', 'box-arrow-down', 'box-arrow-in-down', 'box-arrow-in-up',
+    'inbox', 'archive', 'archive-fill',
+    'pin', 'pin-fill', 'pin-angle', 'pin-angle-fill', 'pin-map', 'pin-map-fill',
+    'geo-alt', 'geo-alt-fill', 'geo', 'geo-fill', 'map', 'map-fill',
+    'compass', 'compass-fill',
+    'signpost', 'signpost-2', 'signpost-2-fill', 'signpost-split', 'signpost-split-fill',
+    'diagram-2', 'diagram-2-fill', 'diagram-3', 'diagram-3-fill',
+    'tree', 'tree-fill', 'flower1', 'flower2', 'flower3',
+    'bug', 'bug-fill',
+    'brightness-high', 'brightness-high-fill', 'moon', 'moon-fill', 'moon-stars', 'moon-stars-fill',
+    'display', 'display-fill', 'tv', 'tv-fill', 'laptop', 'tablet', 'phone',
+    'cpu', 'cpu-fill', 'motherboard', 'motherboard-fill',
+    'hdd', 'hdd-fill', 'hdd-stack', 'hdd-stack-fill', 'hdd-rack', 'hdd-rack-fill',
+    'memory', 'memory-fill',
+    'usb', 'usb-c', 'usb-drive', 'usb-drive-fill', 'usb-micro', 'usb-mini',
+    'plug', 'plug-fill',
+    'battery', 'battery-full', 'battery-half', 'battery-charging', 'power',
+    'lightbulb', 'lightbulb-fill', 'lightbulb-off', 'lightbulb-off-fill',
+    'lamp', 'lamp-fill',
+    'puzzle', 'puzzle-fill',
+    'airplane', 'airplane-engines', 'airplane-engines-fill',
+    'bicycle', 'car-front', 'car-front-fill', 'truck', 'truck-flatbed', 'bus-front', 'bus-front-fill',
+    'train-front', 'train-front-fill', 'train-freight-front', 'train-freight-front-fill',
+    'ship', 'rocket', 'rocket-fill', 'rocket-takeoff', 'rocket-takeoff-fill',
+    'basket', 'basket-fill', 'basket2', 'basket2-fill', 'basket3', 'basket3-fill',
+    'box-seam', 'box-seam-fill', 'box2', 'box2-fill', 'box2-heart', 'box2-heart-fill',
+    'box-arrow-up', 'box-arrow-up-right', 'box-arrow-in-up', 'box-arrow-in-up-right',
+    'box-arrow-down', 'box-arrow-down-left', 'box-arrow-in-down', 'box-arrow-in-down-left',
+    'box-arrow-left', 'box-arrow-in-left', 'box-arrow-right', 'box-arrow-in-right',
+    'inbox', 'inbox-fill',
+    'archive', 'archive-fill',
+    'easel', 'easel-fill', 'easel2', 'easel2-fill', 'easel3', 'easel3-fill',
+    'palette', 'palette-fill', 'palette2', 'paint-bucket', 'brush', 'brush-fill',
+    'pencil', 'pencil-fill', 'pencil-square', 'pen', 'pen-fill',
+    'scissors', 'marker-tip', 'droplet', 'droplet-fill', 'droplet-half',
+    'paint-bucket', 'palette', 'palette-fill',
+    'magic', 'sparkles', 'stars',
+    'window', 'window-dock', 'window-sidebar',
+    'grid', 'grid-3x3', 'grid-3x3-gap', 'grid-fill', 'grid-3x3-gap-fill',
+    'layout-text-sidebar', 'layout-text-sidebar-reverse', 'layout-text-window', 'layout-text-window-reverse',
+    'layout-sidebar', 'layout-sidebar-inset', 'layout-sidebar-inset-reverse',
+    'layout-split', 'layout-three-columns', 'layout-wtf',
+    'columns', 'columns-gap', 'rows',
+    'border', 'border-all', 'border-bottom', 'border-center', 'border-inner', 'border-left',
+    'border-middle', 'border-outer', 'border-right', 'border-style', 'border-top', 'border-width',
+    'border-radius',
+    'bootstrap', 'bootstrap-fill', 'bootstrap-reboot',
+    'app', 'app-indicator', 'bezier', 'bezier2', 'bounding-box', 'bounding-box-circles',
+    'broadcast', 'broadcast-pin', 'circle', 'circle-fill', 'circle-half',
+    'square', 'square-fill', 'square-half', 'triangle', 'triangle-fill', 'triangle-half',
+    'pentagon', 'pentagon-fill', 'pentagon-half', 'hexagon', 'hexagon-fill', 'hexagon-half',
+    'octagon', 'octagon-fill', 'octagon-half',
+    'diamond', 'diamond-fill', 'diamond-half',
+    'egg', 'egg-fill', 'egg-fried',
+    'flower1', 'flower2', 'flower3',
+    'balloon', 'balloon-fill', 'balloon-heart', 'balloon-heart-fill',
+    'arrow-through-heart', 'arrow-through-heart-fill',
+    'heart-arrow', 'heart-pulse', 'heart-pulse-fill',
+    'heartbreak', 'heartbreak-fill',
+    'balloon', 'balloon-fill',
+    'chat-heart', 'chat-heart-fill', 'chat-left-heart', 'chat-left-heart-fill',
+    'chat-right-heart', 'chat-right-heart-fill',
+    'chat-square-heart', 'chat-square-heart-fill',
+    'chat-square-heart', 'chat-square-heart-fill',
+    'envelope-heart', 'envelope-heart-fill', 'envelope-paper', 'envelope-paper-fill',
+    'envelope-paper-heart', 'envelope-paper-heart-fill',
+    'envelope-plus', 'envelope-plus-fill',
+    'mailbox', 'mailbox-flag', 'mailbox2', 'mailbox2-flag',
+    'postage', 'postage-fill', 'postage-heart', 'postage-heart-fill',
+    'send', 'send-check', 'send-check-fill', 'send-dash', 'send-dash-fill',
+    'send-exclamation', 'send-exclamation-fill', 'send-plus', 'send-plus-fill',
+    'send-slash', 'send-slash-fill', 'send-x', 'send-x-fill',
+    'chat-left-quote', 'chat-left-quote-fill', 'chat-left-text', 'chat-left-text-fill',
+    'chat-quote', 'chat-quote-fill', 'chat-right-quote', 'chat-right-quote-fill',
+    'chat-right-text', 'chat-right-text-fill', 'chat-square-quote', 'chat-square-quote-fill',
+    'chat-square-text', 'chat-square-text-fill', 'chat-text', 'chat-text-fill',
+    'emoji-angry', 'emoji-angry-fill', 'emoji-dizzy', 'emoji-dizzy-fill',
+    'emoji-expressionless', 'emoji-expressionless-fill', 'emoji-frown', 'emoji-frown-fill',
+    'emoji-kiss', 'emoji-kiss-fill', 'emoji-laughing', 'emoji-laughing-fill',
+    'emoji-neutral', 'emoji-neutral-fill', 'emoji-smile-upside-down', 'emoji-smile-upside-down-fill',
+    'emoji-surprise', 'emoji-surprise-fill', 'emoji-tear', 'emoji-tear-fill',
+    'emoji-wink', 'emoji-wink-fill',
+    'hand-index', 'hand-index-fill', 'hand-index-thumb', 'hand-index-thumb-fill',
+    'hand-thumbs-up', 'hand-thumbs-up-fill', 'hand-thumbs-down', 'hand-thumbs-down-fill',
+    'handbag', 'handbag-fill',
+    'backpack', 'backpack-fill', 'backpack2', 'backpack2-fill', 'backpack3', 'backpack3-fill',
+    'backpack4', 'backpack4-fill',
+    'bag', 'bag-check', 'bag-check-fill', 'bag-dash', 'bag-dash-fill',
+    'bag-fill', 'bag-heart', 'bag-heart-fill', 'bag-plus', 'bag-plus-fill',
+    'bag-x', 'bag-x-fill', 'bag-x-fill',
+    'basket', 'basket-fill', 'basket2', 'basket2-fill', 'basket3', 'basket3-fill',
+    'cart', 'cart-check', 'cart-check-fill', 'cart-dash', 'cart-dash-fill',
+    'cart-fill', 'cart-plus', 'cart-plus-fill', 'cart-x', 'cart-x-fill',
+    'cart2', 'cart3', 'cart4',
+    'bag-check', 'bag-check-fill', 'bag-dash', 'bag-dash-fill',
+    'bag-heart', 'bag-heart-fill', 'bag-plus', 'bag-plus-fill',
+    'bag-x', 'bag-x-fill',
+    'basket', 'basket-fill', 'basket2', 'basket2-fill', 'basket3', 'basket3-fill',
+    'cart', 'cart-check', 'cart-check-fill', 'cart-dash', 'cart-dash-fill',
+    'cart-fill', 'cart-plus', 'cart-plus-fill', 'cart-x', 'cart-x-fill',
+    'cart2', 'cart3', 'cart4',
+    'shop', 'shop-window',
+    'currency-bitcoin', 'currency-dollar', 'currency-euro', 'currency-exchange', 'currency-pound',
+    'currency-yen', 'piggy-bank', 'piggy-bank-fill', 'safe', 'safe-fill', 'safe2', 'safe2-fill',
+    'wallet', 'wallet-fill', 'wallet2', 'wallet2-fill',
+    'cash', 'cash-coin', 'cash-stack', 'credit-card', 'credit-card-2-back', 'credit-card-2-back-fill',
+    'credit-card-2-front', 'credit-card-2-front-fill', 'credit-card-fill', 'bank', 'bank2',
+    'receipt', 'receipt-cutoff', 'receipt-percent', 'ticket', 'ticket-detailed', 'ticket-detailed-fill',
+    'ticket-fill', 'ticket-perforated', 'ticket-perforated-fill',
+    'percent', 'badge-ad', 'badge-ad-fill', 'badge-cc', 'badge-cc-fill', 'badge-hd', 'badge-hd-fill',
+    'badge-sd', 'badge-sd-fill', 'badge-tm', 'badge-tm-fill', 'badge-vo', 'badge-vo-fill',
+    'badge-vr', 'badge-vr-fill', 'badge-wc', 'badge-wc-fill',
+    'badge', 'badge-4k', 'badge-4k-fill', 'badge-8k', 'badge-8k-fill',
+    'award', 'award-fill', 'medal', 'medal-fill', 'trophy', 'trophy-fill',
+    'patch-check', 'patch-check-fill', 'patch-exclamation', 'patch-exclamation-fill',
+    'patch-minus', 'patch-minus-fill', 'patch-plus', 'patch-plus-fill',
+    'patch-question', 'patch-question-fill',
+    'sticky', 'sticky-fill',
+    'tag', 'tag-fill', 'tags', 'tags-fill',
+    'bookmark', 'bookmark-check', 'bookmark-check-fill', 'bookmark-dash', 'bookmark-dash-fill',
+    'bookmark-fill', 'bookmark-heart', 'bookmark-heart-fill', 'bookmark-plus', 'bookmark-plus-fill',
+    'bookmark-star', 'bookmark-star-fill', 'bookmark-x', 'bookmark-x-fill',
+    'flag', 'flag-fill',
+    'pin', 'pin-angle', 'pin-angle-fill', 'pin-fill', 'pin-map', 'pin-map-fill',
+    'pushpin', 'pushpin-fill',
+    'geo-alt', 'geo-alt-fill', 'geo', 'geo-fill',
+    'compass', 'compass-fill',
+    'signpost', 'signpost-2', 'signpost-2-fill', 'signpost-split', 'signpost-split-fill',
+    'map', 'map-fill',
+    'globe', 'globe-americas', 'globe-americas-fill', 'globe-asia-australia', 'globe-asia-australia-fill',
+    'globe-central-south-asia', 'globe-central-south-asia-fill', 'globe-europe-africa',
+    'globe-europe-africa-fill', 'globe2',
+    'translate',
+    'telephone', 'telephone-fill', 'telephone-forward', 'telephone-forward-fill',
+    'telephone-inbound', 'telephone-inbound-fill', 'telephone-minus', 'telephone-minus-fill',
+    'telephone-outbound', 'telephone-outbound-fill', 'telephone-plus', 'telephone-plus-fill',
+    'telephone-x', 'telephone-x-fill',
+    'phone', 'phone-fill', 'phone-flip', 'phone-landscape', 'phone-landscape-fill',
+    'phone-vibrate', 'phone-vibrate-fill',
+    'chat', 'chat-dots', 'chat-dots-fill', 'chat-fill', 'chat-heart', 'chat-heart-fill',
+    'chat-left', 'chat-left-dots', 'chat-left-dots-fill', 'chat-left-fill', 'chat-left-heart',
+    'chat-left-heart-fill', 'chat-left-quote', 'chat-left-quote-fill', 'chat-left-text',
+    'chat-left-text-fill', 'chat-quote', 'chat-quote-fill', 'chat-right', 'chat-right-dots',
+    'chat-right-dots-fill', 'chat-right-fill', 'chat-right-heart', 'chat-right-heart-fill',
+    'chat-right-quote', 'chat-right-quote-fill', 'chat-right-text', 'chat-right-text-fill',
+    'chat-square', 'chat-square-dots', 'chat-square-dots-fill', 'chat-square-fill',
+    'chat-square-heart', 'chat-square-heart-fill', 'chat-square-quote', 'chat-square-quote-fill',
+    'chat-square-text', 'chat-square-text-fill', 'chat-text', 'chat-text-fill',
+    'envelope', 'envelope-arrow-down', 'envelope-arrow-down-fill', 'envelope-arrow-up',
+    'envelope-arrow-up-fill', 'envelope-check', 'envelope-check-fill', 'envelope-dash',
+    'envelope-dash-fill', 'envelope-exclamation', 'envelope-exclamation-fill', 'envelope-fill',
+    'envelope-heart', 'envelope-heart-fill', 'envelope-open', 'envelope-open-fill',
+    'envelope-open-heart', 'envelope-open-heart-fill', 'envelope-paper', 'envelope-paper-fill',
+    'envelope-paper-heart', 'envelope-paper-heart-fill', 'envelope-plus', 'envelope-plus-fill',
+    'envelope-slash', 'envelope-slash-fill', 'envelope-x', 'envelope-x-fill',
+    'mailbox', 'mailbox-flag', 'mailbox2', 'mailbox2-flag',
+    'postage', 'postage-fill', 'postage-heart', 'postage-heart-fill',
+    'postcard', 'postcard-fill', 'postcard-heart', 'postcard-heart-fill',
+    'send', 'send-check', 'send-check-fill', 'send-dash', 'send-dash-fill',
+    'send-exclamation', 'send-exclamation-fill', 'send-fill', 'send-plus', 'send-plus-fill',
+    'send-slash', 'send-slash-fill', 'send-x', 'send-x-fill',
+    'inbox', 'inbox-fill',
+    'reply', 'reply-all', 'reply-all-fill', 'reply-fill',
+    'forward', 'forward-fill',
+    'megaphone', 'megaphone-fill', 'broadcast', 'broadcast-pin',
+    'mic', 'mic-fill', 'mic-mute', 'mic-mute-fill',
+    'soundwave',
+    'volume-down', 'volume-down-fill', 'volume-mute', 'volume-mute-fill',
+    'volume-off', 'volume-off-fill', 'volume-up', 'volume-up-fill',
+    'music-note', 'music-note-beamed', 'music-note-list', 'music-player', 'music-player-fill',
+    'radioactive', 'radioactive-fill',
+    'rss', 'rss-fill',
+    'broadcast', 'broadcast-pin',
+    'antenna', 'satellite', 'satellite-fill',
+    'signal', 'signal-3', 'signal-4', 'signal-5',
+    'wifi', 'wifi-1', 'wifi-2', 'wifi-off',
+    'router', 'router-fill',
+    'modem', 'modem-fill',
+    'hdd', 'hdd-fill', 'hdd-network', 'hdd-network-fill', 'hdd-rack', 'hdd-rack-fill',
+    'hdd-stack', 'hdd-stack-fill',
+    'hard-drive', 'hard-drive-fill',
+    'ssd', 'ssd-fill',
+    'usb', 'usb-c', 'usb-drive', 'usb-drive-fill', 'usb-micro', 'usb-mini',
+    'usb-plug', 'usb-plug-fill', 'usb-symbol',
+    'memory', 'memory-fill',
+    'cpu', 'cpu-fill', 'motherboard', 'motherboard-fill',
+    'device-hdd', 'device-hdd-fill', 'device-ssd', 'device-ssd-fill',
+    'disc', 'disc-fill',
+    'optical-audio', 'optical-audio-fill',
+    'dvd', 'dvd-fill',
+    'collection-play', 'collection-play-fill',
+    'disc', 'disc-fill',
+    'vinyl', 'vinyl-fill',
+    'cassette', 'cassette-fill',
+    'radio',
+    'boombox', 'boombox-fill',
+    'speaker', 'speaker-fill',
+    'headphones', 'headphones-vr',
+    'earbuds', 'earbuds-case',
+    'display', 'display-fill', 'displayport', 'displayport-fill',
+    'laptop', 'laptop-fill',
+    'pc', 'pc-display', 'pc-display-horizontal', 'pc-horizontal',
+    'monitor', 'projector', 'projector-fill',
+    'tv', 'tv-fill',
+    'tablet', 'tablet-fill', 'tablet-landscape', 'tablet-landscape-fill',
+    'phone', 'phone-fill', 'phone-flip', 'phone-landscape', 'phone-landscape-fill',
+    'phone-vibrate', 'phone-vibrate-fill',
+    'watch', 'smartwatch',
+    'camera', 'camera-fill', 'camera-video', 'camera-video-fill', 'camera-video-off',
+    'camera-video-off-fill', 'camera-reels', 'camera-reels-fill',
+    'camera2',
+    'webcam', 'webcam-fill',
+    'film', 'film-strip',
+    'projector', 'projector-fill',
+    'aperture', 'aperture-fill',
+    'camera-reels', 'camera-reels-fill',
+    'easel', 'easel-fill', 'easel2', 'easel2-fill', 'easel3', 'easel3-fill',
+    'palette', 'palette-fill', 'palette2',
+    'paint-bucket', 'brush', 'brush-fill',
+    'eyedropper', 'eyedropper-fill',
+    'droplet', 'droplet-fill', 'droplet-half',
+    'magic', 'magic-fill',
+    'pencil', 'pencil-fill', 'pencil-square', 'pen', 'pen-fill',
+    'marker-tip', 'highlighter',
+    'scissors', 'scissors-fill',
+    'eraser', 'eraser-fill',
+    'ruler', 'ruler-fill',
+    'layout-text-sidebar', 'layout-text-sidebar-reverse', 'layout-text-window', 'layout-text-window-reverse',
+    'layout-sidebar', 'layout-sidebar-inset', 'layout-sidebar-inset-reverse',
+    'layout-split', 'layout-three-columns', 'layout-wtf',
+    'columns', 'columns-gap', 'rows',
+    'justify', 'justify-left', 'justify-right',
+    'text-center', 'text-left', 'text-right',
+    'text-wrap', 'text-nowrap',
+    'type', 'type-bold', 'type-h1', 'type-h2', 'type-h3', 'type-h4', 'type-h5', 'type-h6',
+    'type-italic', 'type-strikethrough', 'type-underline',
+    'fonts', 'fonts-apple',
+    'list', 'list-check', 'list-check2', 'list-columns', 'list-columns-reverse',
+    'list-nested', 'list-ol', 'list-ul', 'list-task',
+    'quote', 'quote-fill',
+    'blockquote-left', 'blockquote-right',
+    'indent', 'outdent',
+    'paragraph',
+    'code', 'code-slash', 'code-square',
+    'braces', 'braces-asterisk',
+    'brackets', 'brackets-square', 'brackets-curly',
+    'terminal', 'terminal-fill', 'terminal-plus', 'terminal-split',
+    'cursor', 'cursor-fill', 'cursor-text',
+    'caret-left', 'caret-left-fill', 'caret-right', 'caret-right-fill',
+    'caret-up', 'caret-up-fill', 'caret-down', 'caret-down-fill',
+    'caret-down-square', 'caret-down-square-fill', 'caret-left-square', 'caret-left-square-fill',
+    'caret-right-square', 'caret-right-square-fill', 'caret-up-square', 'caret-up-square-fill',
+    'chevron-bar-contract', 'chevron-bar-down', 'chevron-bar-expand', 'chevron-bar-left',
+    'chevron-bar-right', 'chevron-bar-up',
+    'chevron-compact-down', 'chevron-compact-left', 'chevron-compact-right', 'chevron-compact-up',
+    'chevron-double-down', 'chevron-double-left', 'chevron-double-right', 'chevron-double-up',
+    'chevron-down', 'chevron-down-circle', 'chevron-down-circle-fill', 'chevron-down-square',
+    'chevron-down-square-fill', 'chevron-left', 'chevron-left-circle', 'chevron-left-circle-fill',
+    'chevron-left-square', 'chevron-left-square-fill', 'chevron-right', 'chevron-right-circle',
+    'chevron-right-circle-fill', 'chevron-right-square', 'chevron-right-square-fill',
+    'chevron-up', 'chevron-up-circle', 'chevron-up-circle-fill', 'chevron-up-square',
+    'chevron-up-square-fill',
+    'arrow-90deg-down', 'arrow-90deg-left', 'arrow-90deg-right', 'arrow-90deg-up',
+    'arrow-bar-down', 'arrow-bar-left', 'arrow-bar-right', 'arrow-bar-up',
+    'arrow-clockwise', 'arrow-counterclockwise',
+    'arrow-down', 'arrow-down-circle', 'arrow-down-circle-fill', 'arrow-down-left',
+    'arrow-down-left-circle', 'arrow-down-left-circle-fill', 'arrow-down-left-square',
+    'arrow-down-left-square-fill', 'arrow-down-right', 'arrow-down-right-circle',
+    'arrow-down-right-circle-fill', 'arrow-down-right-square', 'arrow-down-right-square-fill',
+    'arrow-down-short', 'arrow-down-square', 'arrow-down-square-fill', 'arrow-down-up',
+    'arrow-left', 'arrow-left-circle', 'arrow-left-circle-fill', 'arrow-left-right',
+    'arrow-left-short', 'arrow-left-square', 'arrow-left-square-fill', 'arrow-repeat',
+    'arrow-right', 'arrow-right-circle', 'arrow-right-circle-fill', 'arrow-right-left',
+    'arrow-right-short', 'arrow-right-square', 'arrow-right-square-fill', 'arrow-through-heart',
+    'arrow-through-heart-fill', 'arrow-up', 'arrow-up-circle', 'arrow-up-circle-fill',
+    'arrow-up-left', 'arrow-up-left-circle', 'arrow-up-left-circle-fill', 'arrow-up-left-square',
+    'arrow-up-left-square-fill', 'arrow-up-right', 'arrow-up-right-circle',
+    'arrow-up-right-circle-fill', 'arrow-up-right-square', 'arrow-up-right-square-fill',
+    'arrow-up-short', 'arrow-up-square', 'arrow-up-square-fill',
+    'arrows-angle-contract', 'arrows-angle-expand', 'arrows-collapse', 'arrows-expand',
+    'arrows-fullscreen', 'arrows-move', 'arrows-vertical', 'arrows-horizontal',
+    'arrow-left-right', 'arrow-up-down',
+    'shift', 'shift-fill',
+    'arrow-left-right', 'arrow-up-down',
+    'arrow-repeat', 'arrow-clockwise', 'arrow-counterclockwise',
+    'arrow-90deg-left', 'arrow-90deg-right',
+    'arrow-bar-down', 'arrow-bar-left', 'arrow-bar-right', 'arrow-bar-up',
+    'arrow-down', 'arrow-down-circle', 'arrow-down-circle-fill', 'arrow-down-left',
+    'arrow-down-left-circle', 'arrow-down-left-circle-fill', 'arrow-down-left-square',
+    'arrow-down-left-square-fill', 'arrow-down-right', 'arrow-down-right-circle',
+    'arrow-down-right-circle-fill', 'arrow-down-right-square', 'arrow-down-right-square-fill',
+    'arrow-down-short', 'arrow-down-square', 'arrow-down-square-fill', 'arrow-down-up',
+    'arrow-left', 'arrow-left-circle', 'arrow-left-circle-fill', 'arrow-left-right',
+    'arrow-left-short', 'arrow-left-square', 'arrow-left-square-fill',
+    'arrow-repeat', 'arrow-right', 'arrow-right-circle', 'arrow-right-circle-fill',
+    'arrow-right-left', 'arrow-right-short', 'arrow-right-square', 'arrow-right-square-fill',
+    'arrow-through-heart', 'arrow-through-heart-fill',
+    'arrow-up', 'arrow-up-circle', 'arrow-up-circle-fill', 'arrow-up-left',
+    'arrow-up-left-circle', 'arrow-up-left-circle-fill', 'arrow-up-left-square',
+    'arrow-up-left-square-fill', 'arrow-up-right', 'arrow-up-right-circle',
+    'arrow-up-right-circle-fill', 'arrow-up-right-square', 'arrow-up-right-square-fill',
+    'arrow-up-short', 'arrow-up-square', 'arrow-up-square-fill',
+    'arrows-angle-contract', 'arrows-angle-expand', 'arrows-collapse', 'arrows-expand',
+    'arrows-fullscreen', 'arrows-move', 'arrows-vertical', 'arrows-horizontal',
+    'arrow-left-right', 'arrow-up-down',
+    'shift', 'shift-fill',
+    'arrow-left-right', 'arrow-up-down',
+    'arrow-repeat', 'arrow-clockwise', 'arrow-counterclockwise',
+    'arrow-90deg-left', 'arrow-90deg-right',
+    'arrow-bar-down', 'arrow-bar-left', 'arrow-bar-right', 'arrow-bar-up',
+    'arrow-down', 'arrow-down-circle', 'arrow-down-circle-fill', 'arrow-down-left',
+    'arrow-down-left-circle', 'arrow-down-left-circle-fill', 'arrow-down-left-square',
+    'arrow-down-left-square-fill', 'arrow-down-right', 'arrow-down-right-circle',
+    'arrow-down-right-circle-fill', 'arrow-down-right-square', 'arrow-down-right-square-fill',
+    'arrow-down-short', 'arrow-down-square', 'arrow-down-square-fill', 'arrow-down-up',
+    'arrow-left', 'arrow-left-circle', 'arrow-left-circle-fill', 'arrow-left-right',
+    'arrow-left-short', 'arrow-left-square', 'arrow-left-square-fill',
+    'arrow-repeat', 'arrow-right', 'arrow-right-circle', 'arrow-right-circle-fill',
+    'arrow-right-left', 'arrow-right-short', 'arrow-right-square', 'arrow-right-square-fill',
+    'arrow-through-heart', 'arrow-through-heart-fill',
+    'arrow-up', 'arrow-up-circle', 'arrow-up-circle-fill', 'arrow-up-left',
+    'arrow-up-left-circle', 'arrow-up-left-circle-fill', 'arrow-up-left-square',
+    'arrow-up-left-square-fill', 'arrow-up-right', 'arrow-up-right-circle',
+    'arrow-up-right-circle-fill', 'arrow-up-right-square', 'arrow-up-right-square-fill',
+    'arrow-up-short', 'arrow-up-square', 'arrow-up-square-fill',
+    'arrows-angle-contract', 'arrows-angle-expand', 'arrows-collapse', 'arrows-expand',
+    'arrows-fullscreen', 'arrows-move', 'arrows-vertical', 'arrows-horizontal',
+    'arrow-left-right', 'arrow-up-down',
+    'shift', 'shift-fill',
+    'arrow-left-right', 'arrow-up-down',
+    'arrow-repeat', 'arrow-clockwise', 'arrow-counterclockwise',
+    'arrow-90deg-left', 'arrow-90deg-right',
+    'arrow-bar-down', 'arrow-bar-left', 'arrow-bar-right', 'arrow-bar-up',
+    'arrow-down', 'arrow-down-circle', 'arrow-down-circle-fill', 'arrow-down-left',
+    'arrow-down-left-circle', 'arrow-down-left-circle-fill', 'arrow-down-left-square',
+    'arrow-down-left-square-fill', 'arrow-down-right', 'arrow-down-right-circle',
+    'arrow-down-right-circle-fill', 'arrow-down-right-square', 'arrow-down-right-square-fill',
+    'arrow-down-short', 'arrow-down-square', 'arrow-down-square-fill', 'arrow-down-up',
+    'arrow-left', 'arrow-left-circle', 'arrow-left-circle-fill', 'arrow-left-right',
+    'arrow-left-short', 'arrow-left-square', 'arrow-left-square-fill',
+    'arrow-repeat', 'arrow-right', 'arrow-right-circle', 'arrow-right-circle-fill',
+    'arrow-right-left', 'arrow-right-short', 'arrow-right-square', 'arrow-right-square-fill',
+    'arrow-through-heart', 'arrow-through-heart-fill',
+    'arrow-up', 'arrow-up-circle', 'arrow-up-circle-fill', 'arrow-up-left',
+    'arrow-up-left-circle', 'arrow-up-left-circle-fill', 'arrow-up-left-square',
+    'arrow-up-left-square-fill', 'arrow-up-right', 'arrow-up-right-circle',
+    'arrow-up-right-circle-fill', 'arrow-up-right-square', 'arrow-up-right-square-fill',
+    'arrow-up-short', 'arrow-up-square', 'arrow-up-square-fill',
+    'arrows-angle-contract', 'arrows-angle-expand', 'arrows-collapse', 'arrows-expand',
+    'arrows-fullscreen', 'arrows-move', 'arrows-vertical', 'arrows-horizontal',
+    'arrow-left-right', 'arrow-up-down',
+    'shift', 'shift-fill'
+  ];
+
+  let selectedIcon = '<%= currentIcon %>';
+
+  function renderIcons(iconsToShow) {
+    const iconGrid = document.getElementById('iconGrid');
+    const noIconsFound = document.getElementById('noIconsFound');
+    
+    if (iconsToShow.length === 0) {
+      iconGrid.style.display = 'none';
+      noIconsFound.style.display = 'block';
+      return;
+    }
+
+    iconGrid.style.display = 'flex';
+    noIconsFound.style.display = 'none';
+    iconGrid.innerHTML = '';
+
+    iconsToShow.forEach(iconName => {
+      const col = document.createElement('div');
+      col.className = 'col-3 col-md-2 col-lg-2';
+      
+      const iconItem = document.createElement('div');
+      iconItem.className = 'icon-item' + (selectedIcon === iconName ? ' selected' : '');
+      iconItem.dataset.icon = iconName;
+      
+      iconItem.innerHTML = `
+        <i class="bi bi-${iconName}"></i>
+        <div class="icon-name">${iconName}</div>
+      `;
+      
+      iconItem.addEventListener('click', function() {
+        // Remove previous selection
+        document.querySelectorAll('.icon-item').forEach(item => {
+          item.classList.remove('selected');
+        });
+        
+        // Add selection to clicked item
+        this.classList.add('selected');
+        selectedIcon = iconName;
+        
+        // Update the input field
+        document.getElementById('iconBootstrap').value = iconName;
+        
+        // Update the preview
+        const preview = document.querySelector('#iconBootstrap').previousElementSibling;
+        preview.innerHTML = `<i class="bi bi-${iconName}"></i>`;
+        
+        // Close modal after a short delay
+        setTimeout(() => {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('iconPickerModal'));
+          modal.hide();
+        }, 300);
+      });
+      
+      col.appendChild(iconItem);
+      iconGrid.appendChild(col);
+    });
+  }
+
+  // Initial render
+  document.addEventListener('DOMContentLoaded', function() {
+    renderIcons(bootstrapIcons);
+
+    // Search functionality
+    const searchInput = document.getElementById('iconSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        
+        if (searchTerm === '') {
+          renderIcons(bootstrapIcons);
+        } else {
+          const filteredIcons = bootstrapIcons.filter(icon => 
+            icon.toLowerCase().includes(searchTerm)
+          );
+          renderIcons(filteredIcons);
+        }
+      });
+
+      // Clear search when modal is hidden
+      const modal = document.getElementById('iconPickerModal');
+      modal.addEventListener('hidden.bs.modal', function() {
+        searchInput.value = '';
+        renderIcons(bootstrapIcons);
+      });
+    }
+
+    // Update preview when typing directly in input
+    const iconInput = document.getElementById('iconBootstrap');
+    if (iconInput) {
+      iconInput.addEventListener('input', function(e) {
+        const iconName = e.target.value.trim();
+        const preview = this.previousElementSibling;
+        
+        if (iconName) {
+          preview.innerHTML = `<i class="bi bi-${iconName}"></i>`;
+        } else {
+          preview.innerHTML = '<i class="bi bi-circle"></i>';
+        }
+      });
+    }
+  });
+</script>
 
 <%- include('../../partials/admin-footer') %>
 

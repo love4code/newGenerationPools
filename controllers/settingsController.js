@@ -5,7 +5,7 @@ const Image = require('../models/Image');
 exports.show = async (req, res) => {
   try {
     const settings = await GlobalSettings.getSettings();
-    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 });
+    const images = await Image.find().select('-originalData -thumbnailData -mediumData -largeData').sort({ createdAt: -1 }).allowDiskUse(true);
     res.render('admin/settings', { 
       title: 'Settings', 
       settings,
