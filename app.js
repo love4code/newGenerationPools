@@ -57,22 +57,25 @@ app.use(express.static(path.join(__dirname, 'public')))
 // Trust proxy (required for Heroku)
 app.set('trust proxy', 1)
 
-// Domain and HTTPS redirect middleware (for production)
-app.use((req, res, next) => {
-  const host = req.headers.host
-  const shouldBe = 'www.newgenerationpool.com'
+// Domain and HTTPS redirect middleware (for production only)
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    const host = req.headers.host
+    const shouldBe = 'www.newgenerationpool.com'
 
-  if (host !== shouldBe) {
-    return res.redirect(301, `https://${shouldBe}${req.url}`)
-  }
+    // Redirect to correct domain if needed
+    if (host !== shouldBe) {
+      return res.redirect(301, `https://${shouldBe}${req.url}`)
+    }
 
-  // optionally also force https if you're terminating SSL at Heroku:
-  if (req.headers['x-forwarded-proto'] !== 'https') {
-    return res.redirect(301, `https://${host}${req.url}`)
-  }
+    // Force HTTPS if not already using it
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${shouldBe}${req.url}`)
+    }
 
-  next()
-})
+    next()
+  })
+}
 
 // Session configuration
 const isProduction = process.env.NODE_ENV === 'production'
