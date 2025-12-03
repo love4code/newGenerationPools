@@ -60,17 +60,30 @@ app.set('trust proxy', 1)
 // Domain and HTTPS redirect middleware (for production only)
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
-    const host = req.headers.host
-    const shouldBe = 'www.newgenerationpool.com'
+    const host = req.headers.host || ''
+    const canonicalDomain = 'www.newgenerationpool.com'
 
-    // Redirect to correct domain if needed
-    if (host !== shouldBe) {
-      return res.redirect(301, `https://${shouldBe}${req.url}`)
+    // Normalize host (remove port if present)
+    const hostWithoutPort = host.split(':')[0].toLowerCase()
+
+    // Check if it's the canonical domain (with or without www)
+    const isCanonical =
+      hostWithoutPort === canonicalDomain ||
+      hostWithoutPort === 'newgenerationpool.com'
+
+    // If not canonical, redirect to www version
+    if (!isCanonical) {
+      return res.redirect(301, `https://${canonicalDomain}${req.url}`)
+    }
+
+    // If non-www version, redirect to www
+    if (hostWithoutPort === 'newgenerationpool.com') {
+      return res.redirect(301, `https://${canonicalDomain}${req.url}`)
     }
 
     // Force HTTPS if not already using it
     if (req.headers['x-forwarded-proto'] !== 'https') {
-      return res.redirect(301, `https://${shouldBe}${req.url}`)
+      return res.redirect(301, `https://${canonicalDomain}${req.url}`)
     }
 
     next()
