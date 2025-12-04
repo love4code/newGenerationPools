@@ -109,7 +109,16 @@ exports.home = async (req, res) => {
           status: 'published',
           isActive: true 
         })
-          .populate('featuredImage images')
+          .populate({
+            path: 'featuredImage',
+            select: 'largePath mediumPath thumbnailPath altText' // Only select needed fields
+          })
+          .populate({
+            path: 'images',
+            select: 'largePath mediumPath thumbnailPath altText',
+            options: { limit: 5 } // Limit images to first 5
+          })
+          .select('name slug shortDescription price featuredImage images displayOrder') // Only select needed fields
           .sort({ displayOrder: 1, createdAt: -1 })
           .limit(3)
           .lean(),
@@ -123,7 +132,16 @@ exports.home = async (req, res) => {
           status: 'published',
           showInPortfolio: true 
         })
-          .populate('featuredImage images')
+          .populate({
+            path: 'featuredImage',
+            select: 'largePath mediumPath thumbnailPath altText' // Only select needed fields
+          })
+          .populate({
+            path: 'images',
+            select: 'largePath mediumPath thumbnailPath altText',
+            options: { limit: 5 } // Limit images to first 5
+          })
+          .select('title slug shortDescription featuredImage images createdAt') // Only select needed fields
           .sort({ createdAt: -1 })
           .limit(4)
           .lean(),
@@ -312,26 +330,79 @@ exports.projectDetail = async (req, res) => {
 
 // Products listing
 exports.products = async (req, res) => {
+  const startTime = Date.now();
+  console.log('Products page request started');
+  
   try {
-    const settings = await getSettingsWithTheme();
-    const products = await Product.find({ 
-      status: 'published',
-      isActive: true 
-    })
-      .populate('featuredImage images')
-      .sort({ displayOrder: 1, createdAt: -1 });
+    const [settings, products] = await Promise.all([
+      withTimeout(getSettingsWithTheme(), 5000).catch(err => {
+        console.error('Settings query error:', err);
+        return null;
+      }),
+      withTimeout(
+        Product.find({ 
+          status: 'published',
+          isActive: true 
+        })
+          .populate({
+            path: 'featuredImage',
+            select: 'largePath mediumPath thumbnailPath altText'
+          })
+          .populate({
+            path: 'images',
+            select: 'largePath mediumPath thumbnailPath altText',
+            options: { limit: 3 } // Limit to 3 images per product for listing
+          })
+          .select('name slug shortDescription price featuredImage images displayOrder')
+          .sort({ displayOrder: 1, createdAt: -1 })
+          .lean(),
+        15000 // Give more time for full listing
+      ).catch(err => {
+        console.error('Products query error:', err);
+        return [];
+      })
+    ]);
+
+    const finalSettings = settings || {
+      defaultMetaTitle: 'New Generation Pools',
+      defaultMetaDescription: 'Premium Pool Services',
+      theme: {
+        preset: 'default',
+        primaryColor: '#0d6efd',
+        secondaryColor: '#6c757d',
+        navbarColor: '#212529',
+        footerColor: '#2c3e50',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }
+    };
 
     const baseUrl = req.protocol + '://' + req.get('host');
+    console.log('Products page loaded in', Date.now() - startTime, 'ms');
+    
     res.render('public/products', {
       title: 'Our Products - New Generation Pools',
       description: 'Browse our selection of premium pool products.',
-      products,
-      settings,
+      products: products || [],
+      settings: finalSettings,
       baseUrl
     });
   } catch (error) {
     console.error('Products page error:', error);
-    res.status(500).render('public/error', { error: 'Failed to load products' });
+    console.error('Error stack:', error.stack);
+    // Ensure locals are set for error page
+    if (!res.locals) {
+      res.locals = {};
+    }
+    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
+    res.locals.session = req.session || null;
+    res.locals.username = req.session && req.session.username ? req.session.username : null;
+    res.locals.success = res.locals.success || [];
+    res.locals.error = res.locals.error || [];
+    
+    res.status(500).render('public/error', { 
+      title: 'Error',
+      error: 'Failed to load products. Please try again later.' 
+    });
   }
 };
 

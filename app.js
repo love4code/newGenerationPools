@@ -28,9 +28,23 @@ if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
   process.exit(1)
 }
 
+// MongoDB connection options for better performance
+const mongooseOptions = {
+  serverSelectionTimeoutMS: 10000, // 10 seconds
+  socketTimeoutMS: 45000, // 45 seconds
+  maxPoolSize: 10, // Maintain up to 10 socket connections
+  minPoolSize: 2, // Maintain at least 2 socket connections
+  maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+  retryWrites: true,
+  retryReads: true
+}
+
 mongoose
-  .connect(mongoUri)
-  .then(() => console.log('Connected to MongoDB'))
+  .connect(mongoUri, mongooseOptions)
+  .then(() => {
+    console.log('Connected to MongoDB')
+    console.log('MongoDB connection pool configured')
+  })
   .catch(err => {
     console.error('MongoDB connection error:', err)
     if (process.env.NODE_ENV === 'production') {
