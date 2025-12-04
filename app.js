@@ -30,20 +30,55 @@ if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
 
 // MongoDB connection options for better performance
 const mongooseOptions = {
-  serverSelectionTimeoutMS: 10000, // 10 seconds
-  socketTimeoutMS: 45000, // 45 seconds
-  maxPoolSize: 10, // Maintain up to 10 socket connections
-  minPoolSize: 2, // Maintain at least 2 socket connections
+  serverSelectionTimeoutMS: 5000, // Reduced to 5 seconds
+  socketTimeoutMS: 30000, // Reduced to 30 seconds
+  connectTimeoutMS: 10000, // 10 seconds to establish connection
+  maxPoolSize: 5, // Reduced pool size to avoid connection exhaustion
+  minPoolSize: 1, // Reduced minimum pool size
   maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
   retryWrites: true,
-  retryReads: true
+  retryReads: true,
+  heartbeatFrequencyMS: 10000, // Check connection health every 10 seconds
+  serverSelectionRetryMS: 5000 // Retry server selection every 5 seconds
 }
+
+// Add connection event listeners for monitoring
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connected successfully')
+})
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err)
+})
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('MongoDB disconnected')
+})
+
+mongoose.connection.on('reconnected', () => {
+  console.log('MongoDB reconnected')
+})
+
+// Monitor connection state
+setInterval(() => {
+  const state = mongoose.connection.readyState
+  const states = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  }
+  if (state !== 1) {
+    console.warn(`MongoDB connection state: ${states[state]} (${state})`)
+  }
+}, 30000) // Check every 30 seconds
 
 mongoose
   .connect(mongoUri, mongooseOptions)
   .then(() => {
     console.log('Connected to MongoDB')
     console.log('MongoDB connection pool configured')
+    console.log('Connection state:', mongoose.connection.readyState)
   })
   .catch(err => {
     console.error('MongoDB connection error:', err)
