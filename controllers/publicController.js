@@ -374,34 +374,73 @@ exports.services = async (req, res) => {
 
 // Service detail
 exports.serviceDetail = async (req, res) => {
+  const startTime = Date.now();
+  console.log('Service detail request started:', req.params.slug);
+  
   try {
-    const service = await Service.findOne({ slug: req.params.slug, isActive: true })
-      .populate('iconImage heroImage');
+    const service = await withTimeout(
+      Service.findOne({ slug: req.params.slug, isActive: true })
+        .populate({
+          path: 'iconImage',
+          select: '_id altText'
+        })
+        .populate({
+          path: 'heroImage',
+          select: '_id altText'
+        })
+        .lean({ virtuals: true }),
+      10000
+    ).catch(err => {
+      console.error('Service detail query error:', err);
+      return null;
+    });
     
     if (!service) {
-      return res.status(404).render('public/404');
+      return res.status(404).render('public/404', {
+        title: 'Service Not Found',
+        description: 'The service you are looking for does not exist.'
+      });
     }
+
+    // Process images to add paths
+    const processedService = processItemsWithImages([service])[0];
 
     const baseUrl = req.protocol + '://' + req.get('host');
     const seo = {
-      title: service.seoTitle || `${service.name} - New Generation Pools`,
-      description: service.seoDescription || service.shortDescription || 'New Generation Pools Service',
-      keywords: service.seoKeywords || [],
-      canonicalUrl: service.seoCanonicalUrl || baseUrl + req.originalUrl,
-      ogImage: service.heroImage ? baseUrl + service.heroImage.largePath : '',
+      title: processedService.seoTitle || `${processedService.name} - New Generation Pools`,
+      description: processedService.seoDescription || processedService.shortDescription || 'New Generation Pools Service',
+      keywords: processedService.seoKeywords || [],
+      canonicalUrl: processedService.seoCanonicalUrl || baseUrl + req.originalUrl,
+      ogImage: processedService.heroImage ? baseUrl + processedService.heroImage.largePath : '',
       ogUrl: baseUrl + req.originalUrl,
-      index: service.seoIndex
+      index: processedService.seoIndex
     };
 
+    console.log('Service detail loaded in', Date.now() - startTime, 'ms');
+    
     res.render('public/service-detail', {
-      service,
+      service: processedService,
       seo,
       title: seo.title,
       baseUrl
     });
   } catch (error) {
     console.error('Service detail error:', error);
-    res.status(500).render('public/error', { error: 'Failed to load service' });
+    console.error('Error stack:', error.stack);
+    // Ensure locals are set for error page
+    if (!res.locals) {
+      res.locals = {};
+    }
+    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
+    res.locals.session = req.session || null;
+    res.locals.username = req.session && req.session.username ? req.session.username : null;
+    res.locals.success = res.locals.success || [];
+    res.locals.error = res.locals.error || [];
+    
+    res.status(500).render('public/error', { 
+      title: 'Error',
+      error: 'Failed to load service. Please try again later.' 
+    });
   }
 };
 
@@ -483,34 +522,74 @@ exports.portfolio = async (req, res) => {
 
 // Project detail
 exports.projectDetail = async (req, res) => {
+  const startTime = Date.now();
+  console.log('Project detail request started:', req.params.slug);
+  
   try {
-    const project = await Project.findOne({ slug: req.params.slug, status: 'published' })
-      .populate('featuredImage images');
+    const project = await withTimeout(
+      Project.findOne({ slug: req.params.slug, status: 'published' })
+        .populate({
+          path: 'featuredImage',
+          select: '_id altText'
+        })
+        .populate({
+          path: 'images',
+          select: '_id altText',
+          options: { limit: 20 } // Limit images for detail page
+        })
+        .lean({ virtuals: true }),
+      15000
+    ).catch(err => {
+      console.error('Project detail query error:', err);
+      return null;
+    });
     
     if (!project) {
-      return res.status(404).render('public/404');
+      return res.status(404).render('public/404', {
+        title: 'Project Not Found',
+        description: 'The project you are looking for does not exist.'
+      });
     }
+
+    // Process images to add paths
+    const processedProject = processItemsWithImages([project])[0];
 
     const baseUrl = req.protocol + '://' + req.get('host');
     const seo = {
-      title: project.seoTitle || `${project.title} - New Generation Pools`,
-      description: project.seoDescription || project.shortDescription || 'New Generation Pools Project',
-      keywords: project.seoKeywords || [],
-      canonicalUrl: project.seoCanonicalUrl || baseUrl + req.originalUrl,
-      ogImage: project.featuredImage ? baseUrl + project.featuredImage.largePath : '',
+      title: processedProject.seoTitle || `${processedProject.title} - New Generation Pools`,
+      description: processedProject.seoDescription || processedProject.shortDescription || 'New Generation Pools Project',
+      keywords: processedProject.seoKeywords || [],
+      canonicalUrl: processedProject.seoCanonicalUrl || baseUrl + req.originalUrl,
+      ogImage: processedProject.featuredImage ? baseUrl + processedProject.featuredImage.largePath : '',
       ogUrl: baseUrl + req.originalUrl,
-      index: project.seoIndex
+      index: processedProject.seoIndex
     };
 
+    console.log('Project detail loaded in', Date.now() - startTime, 'ms');
+    
     res.render('public/project-detail', {
-      project,
+      project: processedProject,
       seo,
       title: seo.title,
       baseUrl
     });
   } catch (error) {
     console.error('Project detail error:', error);
-    res.status(500).render('public/error', { error: 'Failed to load project' });
+    console.error('Error stack:', error.stack);
+    // Ensure locals are set for error page
+    if (!res.locals) {
+      res.locals = {};
+    }
+    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
+    res.locals.session = req.session || null;
+    res.locals.username = req.session && req.session.username ? req.session.username : null;
+    res.locals.success = res.locals.success || [];
+    res.locals.error = res.locals.error || [];
+    
+    res.status(500).render('public/error', { 
+      title: 'Error',
+      error: 'Failed to load project. Please try again later.' 
+    });
   }
 };
 
@@ -597,31 +676,57 @@ exports.products = async (req, res) => {
 
 // Product detail
 exports.productDetail = async (req, res) => {
+  const startTime = Date.now();
+  console.log('Product detail request started:', req.params.slug);
+  
   try {
-    const product = await Product.findOne({ slug: req.params.slug, status: 'published', isActive: true })
-      .populate('featuredImage images');
+    const product = await withTimeout(
+      Product.findOne({ slug: req.params.slug, status: 'published', isActive: true })
+        .populate({
+          path: 'featuredImage',
+          select: '_id altText'
+        })
+        .populate({
+          path: 'images',
+          select: '_id altText',
+          options: { limit: 20 } // Limit images for detail page
+        })
+        .lean({ virtuals: true }),
+      15000
+    ).catch(err => {
+      console.error('Product detail query error:', err);
+      return null;
+    });
     
     if (!product) {
-      return res.status(404).render('public/404');
+      return res.status(404).render('public/404', {
+        title: 'Product Not Found',
+        description: 'The product you are looking for does not exist.'
+      });
     }
+
+    // Process images to add paths
+    const processedProduct = processItemsWithImages([product])[0];
 
     const baseUrl = req.protocol + '://' + req.get('host');
     const seo = {
-      title: product.seoTitle || `${product.name} - New Generation Pools`,
-      description: product.seoDescription || product.shortDescription || 'New Generation Pools Product',
-      keywords: product.seoKeywords || [],
-      canonicalUrl: product.seoCanonicalUrl || baseUrl + req.originalUrl,
-      ogImage: product.featuredImage ? baseUrl + product.featuredImage.largePath : '',
+      title: processedProduct.seoTitle || `${processedProduct.name} - New Generation Pools`,
+      description: processedProduct.seoDescription || processedProduct.shortDescription || 'New Generation Pools Product',
+      keywords: processedProduct.seoKeywords || [],
+      canonicalUrl: processedProduct.seoCanonicalUrl || baseUrl + req.originalUrl,
+      ogImage: processedProduct.featuredImage ? baseUrl + processedProduct.featuredImage.largePath : '',
       ogUrl: baseUrl + req.originalUrl,
-      index: product.seoIndex
+      index: processedProduct.seoIndex
     };
 
     // Get flash messages
     const error = req.flash('error');
     const success = req.flash('success');
 
+    console.log('Product detail loaded in', Date.now() - startTime, 'ms');
+
     res.render('public/product-detail', {
-      product,
+      product: processedProduct,
       seo,
       title: seo.title,
       baseUrl,
@@ -630,7 +735,21 @@ exports.productDetail = async (req, res) => {
     });
   } catch (error) {
     console.error('Product detail error:', error);
-    res.status(500).render('public/error', { error: 'Failed to load product' });
+    console.error('Error stack:', error.stack);
+    // Ensure locals are set for error page
+    if (!res.locals) {
+      res.locals = {};
+    }
+    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
+    res.locals.session = req.session || null;
+    res.locals.username = req.session && req.session.username ? req.session.username : null;
+    res.locals.success = res.locals.success || [];
+    res.locals.error = res.locals.error || [];
+    
+    res.status(500).render('public/error', { 
+      title: 'Error',
+      error: 'Failed to load product. Please try again later.' 
+    });
   }
 };
 
