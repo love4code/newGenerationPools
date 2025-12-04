@@ -184,7 +184,8 @@ exports.serve = async (req, res) => {
     const selectFields = `mimeType ${sizeField}`;
     
     // Add timeout to image query (reduced to 8 seconds for faster failure)
-    const imageQuery = Image.findById(id).select(selectFields).lean();
+    // Don't use .lean() here because we need the Buffer to work properly
+    const imageQuery = Image.findById(id).select(selectFields);
     const image = await Promise.race([
       imageQuery,
       new Promise((_, reject) =>
@@ -201,10 +202,20 @@ exports.serve = async (req, res) => {
       return res.status(404).send('Image data not found');
     }
 
+    // Ensure imageData is a Buffer
+    const buffer = Buffer.isBuffer(imageData) ? imageData : Buffer.from(imageData);
+    const contentLength = buffer.length;
+
+    // Validate content length is a valid number
+    if (typeof contentLength !== 'number' || isNaN(contentLength) || contentLength <= 0) {
+      console.error(`Invalid content length for image ${id}/${size}:`, contentLength);
+      return res.status(500).send('Invalid image data');
+    }
+
     // Set appropriate headers with aggressive caching
     res.set({
-      'Content-Type': image.mimeType,
-      'Content-Length': imageData.length,
+      'Content-Type': image.mimeType || 'image/jpeg', // Default to jpeg if mimeType is missing
+      'Content-Length': String(contentLength), // Ensure it's a string
       'Cache-Control': 'public, max-age=31536000, immutable', // Cache for 1 year, immutable
       'ETag': etag, // ETag for conditional requests
       'Last-Modified': new Date().toUTCString()
@@ -215,7 +226,7 @@ exports.serve = async (req, res) => {
       console.warn(`Slow image load: ${id}/${size} took ${loadTime}ms`);
     }
 
-    res.send(imageData);
+    res.send(buffer);
   } catch (error) {
     const loadTime = Date.now() - startTime;
     console.error(`Serve image error (${loadTime}ms):`, error.message);
