@@ -90,30 +90,6 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
-// adding logging to see whats going on
-app.get('/', async (req, res, next) => {
-  const start = Date.now()
-  console.log('GET / start', { time: new Date().toISOString() })
-
-  try {
-    // Log each async step:
-    console.log('GET /: fetching recent projects')
-    const recentProjects = await Project.find().sort({ createdAt: -1 }).limit(4)
-
-    console.log('GET /: fetching products')
-    const products = await Product.find().limit(10)
-
-    // Any other DB calls? Log before/after them too.
-
-    console.log('GET /: rendering view')
-    res.render('home', { recentProjects, products })
-    console.log('GET / done in', Date.now() - start, 'ms')
-  } catch (err) {
-    console.error('GET / error', err)
-    next(err)
-  }
-})
-
 // Session configuration
 const isProduction = process.env.NODE_ENV === 'production'
 app.use(
@@ -164,6 +140,20 @@ app.use('/admin', adminRoutes)
 
 // 404 handler
 app.use((req, res) => {
+  // Ensure locals are set even for 404 errors
+  if (!res.locals.isAuthenticated) {
+    res.locals.isAuthenticated = !!(
+      req.session && req.session.isAuthenticated === true
+    )
+  }
+  if (!res.locals.session) {
+    res.locals.session = req.session
+  }
+  if (!res.locals.username) {
+    res.locals.username =
+      req.session && req.session.username ? req.session.username : null
+  }
+
   res.status(404).render('public/404', {
     title: 'Page Not Found',
     description: 'The page you are looking for does not exist.'
@@ -173,6 +163,28 @@ app.use((req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err)
+
+  // Ensure locals are set even for error pages
+  // This prevents "isAuthenticated is not defined" errors
+  if (!res.locals.isAuthenticated) {
+    res.locals.isAuthenticated = !!(
+      req.session && req.session.isAuthenticated === true
+    )
+  }
+  if (!res.locals.session) {
+    res.locals.session = req.session
+  }
+  if (!res.locals.username) {
+    res.locals.username =
+      req.session && req.session.username ? req.session.username : null
+  }
+  if (!res.locals.success) {
+    res.locals.success = []
+  }
+  if (!res.locals.error) {
+    res.locals.error = []
+  }
+
   res.status(err.status || 500)
   res.render('public/error', {
     title: 'Error',
