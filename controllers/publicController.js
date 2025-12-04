@@ -43,32 +43,61 @@ const themePresets = {
 
 // Helper to get settings with theme
 const getSettingsWithTheme = async () => {
-  const settings = await GlobalSettings.getSettings();
-  
-  // Populate defaultOpenGraphImage if it exists
-  if (settings.defaultOpenGraphImage) {
-    await settings.populate('defaultOpenGraphImage');
-  }
-  
-  if (!settings.theme) {
-    settings.theme = {
-      preset: 'default',
-      primaryColor: '#0d6efd',
-      secondaryColor: '#6c757d',
-      navbarColor: '#212529',
-      footerColor: '#2c3e50',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    };
-  } else {
-    // Apply preset if not custom
-    if (settings.theme.preset && settings.theme.preset !== 'custom' && themePresets[settings.theme.preset]) {
-      settings.theme = {
-        ...settings.theme,
-        ...themePresets[settings.theme.preset]
-      };
+  try {
+    const settings = await GlobalSettings.getSettings();
+    
+    // Populate defaultOpenGraphImage if it exists (with timeout to prevent hanging)
+    if (settings.defaultOpenGraphImage) {
+      try {
+        await Promise.race([
+          settings.populate('defaultOpenGraphImage'),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Populate timeout')), 3000)
+          )
+        ]);
+      } catch (populateError) {
+        console.warn('Failed to populate defaultOpenGraphImage:', populateError.message);
+        // Continue without the image if populate fails
+        settings.defaultOpenGraphImage = null;
+      }
     }
+    
+    if (!settings.theme) {
+      settings.theme = {
+        preset: 'default',
+        primaryColor: '#0d6efd',
+        secondaryColor: '#6c757d',
+        navbarColor: '#212529',
+        footerColor: '#2c3e50',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      };
+    } else {
+      // Apply preset if not custom
+      if (settings.theme.preset && settings.theme.preset !== 'custom' && themePresets[settings.theme.preset]) {
+        settings.theme = {
+          ...settings.theme,
+          ...themePresets[settings.theme.preset]
+        };
+      }
+    }
+    return settings;
+  } catch (error) {
+    console.error('getSettingsWithTheme error:', error);
+    // Return default settings if query fails
+    return {
+      defaultMetaTitle: 'New Generation Pools',
+      defaultMetaDescription: 'Premium Pool Services',
+      defaultOpenGraphImage: null,
+      theme: {
+        preset: 'default',
+        primaryColor: '#0d6efd',
+        secondaryColor: '#6c757d',
+        navbarColor: '#212529',
+        footerColor: '#2c3e50',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }
+    };
   }
-  return settings;
 };
 
 // Helper function to add timeout to promises
@@ -697,18 +726,61 @@ exports.productOrderSubmit = async (req, res) => {
 
 // Contact page
 exports.contact = async (req, res) => {
+  const startTime = Date.now();
+  console.log('Contact page request started');
+  
   try {
-    const settings = await getSettingsWithTheme();
+    const settings = await withTimeout(getSettingsWithTheme(), 5000).catch(err => {
+      console.error('Settings query error:', err);
+      return null;
+    });
+
+    const finalSettings = settings || {
+      defaultMetaTitle: 'New Generation Pools',
+      defaultMetaDescription: 'Premium Pool Services',
+      theme: {
+        preset: 'default',
+        primaryColor: '#0d6efd',
+        secondaryColor: '#6c757d',
+        navbarColor: '#212529',
+        footerColor: '#2c3e50',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }
+    };
+
+    // Ensure settings image has paths
+    if (finalSettings && finalSettings.defaultOpenGraphImage) {
+      if (finalSettings.defaultOpenGraphImage._id && !finalSettings.defaultOpenGraphImage.largePath) {
+        finalSettings.defaultOpenGraphImage = addImagePaths(finalSettings.defaultOpenGraphImage);
+      }
+    }
+
     const baseUrl = req.protocol + '://' + req.get('host');
+    console.log('Contact page loaded in', Date.now() - startTime, 'ms');
+    
     res.render('public/contact', {
       title: 'Contact Us - New Generation Pools',
       description: 'Get in touch with New Generation Pools for all your pool needs.',
-      settings,
+      settings: finalSettings,
       baseUrl
     });
   } catch (error) {
     console.error('Contact page error:', error);
-    res.status(500).render('public/error', { error: 'Failed to load contact page' });
+    console.error('Error stack:', error.stack);
+    // Ensure locals are set for error page
+    if (!res.locals) {
+      res.locals = {};
+    }
+    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
+    res.locals.session = req.session || null;
+    res.locals.username = req.session && req.session.username ? req.session.username : null;
+    res.locals.success = res.locals.success || [];
+    res.locals.error = res.locals.error || [];
+    
+    res.status(500).render('public/error', { 
+      title: 'Error',
+      error: 'Failed to load contact page. Please try again later.' 
+    });
   }
 };
 
