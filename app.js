@@ -140,19 +140,21 @@ app.use('/admin', adminRoutes)
 
 // 404 handler
 app.use((req, res) => {
-  // Ensure locals are set even for 404 errors
-  if (!res.locals.isAuthenticated) {
-    res.locals.isAuthenticated = !!(
-      req.session && req.session.isAuthenticated === true
-    )
+  // Ensure locals are ALWAYS set for 404 pages
+  // Initialize res.locals if it doesn't exist
+  if (!res.locals) {
+    res.locals = {}
   }
-  if (!res.locals.session) {
-    res.locals.session = req.session
-  }
-  if (!res.locals.username) {
-    res.locals.username =
-      req.session && req.session.username ? req.session.username : null
-  }
+
+  // Always set these values
+  res.locals.isAuthenticated = !!(
+    req.session && req.session.isAuthenticated === true
+  )
+  res.locals.session = req.session || null
+  res.locals.username =
+    req.session && req.session.username ? req.session.username : null
+  res.locals.success = res.locals.success || []
+  res.locals.error = res.locals.error || []
 
   res.status(404).render('public/404', {
     title: 'Page Not Found',
@@ -164,25 +166,25 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Error:', err)
 
-  // Ensure locals are set even for error pages
-  // This prevents "isAuthenticated is not defined" errors
-  if (!res.locals.isAuthenticated) {
-    res.locals.isAuthenticated = !!(
-      req.session && req.session.isAuthenticated === true
-    )
+  // Ensure locals are ALWAYS set for error pages
+  // Initialize res.locals if it doesn't exist
+  if (!res.locals) {
+    res.locals = {}
   }
-  if (!res.locals.session) {
-    res.locals.session = req.session
-  }
-  if (!res.locals.username) {
-    res.locals.username =
-      req.session && req.session.username ? req.session.username : null
-  }
-  if (!res.locals.success) {
-    res.locals.success = []
-  }
-  if (!res.locals.error) {
-    res.locals.error = []
+
+  // Always set these values (don't check if they exist first)
+  res.locals.isAuthenticated = !!(
+    req.session && req.session.isAuthenticated === true
+  )
+  res.locals.session = req.session || null
+  res.locals.username =
+    req.session && req.session.username ? req.session.username : null
+  res.locals.success = res.locals.success || []
+  res.locals.error = res.locals.error || []
+
+  // Don't render if headers already sent
+  if (res.headersSent) {
+    return next(err)
   }
 
   res.status(err.status || 500)
