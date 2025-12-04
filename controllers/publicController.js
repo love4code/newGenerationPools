@@ -262,23 +262,78 @@ exports.home = async (req, res) => {
 
 // Services listing
 exports.services = async (req, res) => {
+  const startTime = Date.now();
+  console.log('Services page request started');
+  
   try {
-    const settings = await getSettingsWithTheme();
-    const services = await Service.find({ isActive: true })
-      .populate('iconImage heroImage')
-      .sort({ displayOrder: 1 });
+    const [settings, services] = await Promise.all([
+      withTimeout(getSettingsWithTheme(), 5000).catch(err => {
+        console.error('Settings query error:', err);
+        return null;
+      }),
+      withTimeout(
+        Service.find({ isActive: true })
+          .populate({
+            path: 'iconImage',
+            select: '_id altText'
+          })
+          .populate({
+            path: 'heroImage',
+            select: '_id altText'
+          })
+          .select('name slug shortDescription iconImage heroImage displayOrder')
+          .sort({ displayOrder: 1 })
+          .lean({ virtuals: true }),
+        10000
+      ).catch(err => {
+        console.error('Services query error:', err);
+        return [];
+      })
+    ]);
+
+    const finalSettings = settings || {
+      defaultMetaTitle: 'New Generation Pools',
+      defaultMetaDescription: 'Premium Pool Services',
+      theme: {
+        preset: 'default',
+        primaryColor: '#0d6efd',
+        secondaryColor: '#6c757d',
+        navbarColor: '#212529',
+        footerColor: '#2c3e50',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }
+    };
+
+    // Process images to add paths
+    const processedServices = processItemsWithImages(services);
 
     const baseUrl = req.protocol + '://' + req.get('host');
+    console.log('Services page loaded in', Date.now() - startTime, 'ms');
+    
     res.render('public/services', {
       title: 'Our Services - New Generation Pools',
       description: 'Explore our comprehensive pool services including design, installation, and maintenance.',
-      services,
-      settings,
+      services: processedServices || [],
+      settings: finalSettings,
       baseUrl
     });
   } catch (error) {
     console.error('Services page error:', error);
-    res.status(500).render('public/error', { error: 'Failed to load services' });
+    console.error('Error stack:', error.stack);
+    // Ensure locals are set for error page
+    if (!res.locals) {
+      res.locals = {};
+    }
+    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
+    res.locals.session = req.session || null;
+    res.locals.username = req.session && req.session.username ? req.session.username : null;
+    res.locals.success = res.locals.success || [];
+    res.locals.error = res.locals.error || [];
+    
+    res.status(500).render('public/error', { 
+      title: 'Error',
+      error: 'Failed to load services. Please try again later.' 
+    });
   }
 };
 
@@ -317,26 +372,77 @@ exports.serviceDetail = async (req, res) => {
 
 // Portfolio listing
 exports.portfolio = async (req, res) => {
+  const startTime = Date.now();
+  console.log('Portfolio page request started');
+  
   try {
-    const projects = await Project.find({ 
-      status: 'published',
-      showInPortfolio: true 
-    })
-      .populate('featuredImage')
-      .sort({ createdAt: -1 });
+    const [settings, projects] = await Promise.all([
+      withTimeout(getSettingsWithTheme(), 5000).catch(err => {
+        console.error('Settings query error:', err);
+        return null;
+      }),
+      withTimeout(
+        Project.find({ 
+          status: 'published',
+          showInPortfolio: true 
+        })
+          .populate({
+            path: 'featuredImage',
+            select: '_id altText'
+          })
+          .select('title slug shortDescription featuredImage createdAt')
+          .sort({ createdAt: -1 })
+          .lean({ virtuals: true }),
+        10000
+      ).catch(err => {
+        console.error('Portfolio query error:', err);
+        return [];
+      })
+    ]);
+
+    const finalSettings = settings || {
+      defaultMetaTitle: 'New Generation Pools',
+      defaultMetaDescription: 'Premium Pool Services',
+      theme: {
+        preset: 'default',
+        primaryColor: '#0d6efd',
+        secondaryColor: '#6c757d',
+        navbarColor: '#212529',
+        footerColor: '#2c3e50',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }
+    };
+
+    // Process images to add paths
+    const processedProjects = processItemsWithImages(projects);
 
     const baseUrl = req.protocol + '://' + req.get('host');
-    const settings = await getSettingsWithTheme();
+    console.log('Portfolio page loaded in', Date.now() - startTime, 'ms');
+    
     res.render('public/portfolio', {
       title: 'Our Portfolio - New Generation Pools',
       description: 'View our portfolio of completed pool projects.',
-      projects,
-      settings,
+      projects: processedProjects || [],
+      settings: finalSettings,
       baseUrl
     });
   } catch (error) {
     console.error('Portfolio page error:', error);
-    res.status(500).render('public/error', { error: 'Failed to load portfolio' });
+    console.error('Error stack:', error.stack);
+    // Ensure locals are set for error page
+    if (!res.locals) {
+      res.locals = {};
+    }
+    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
+    res.locals.session = req.session || null;
+    res.locals.username = req.session && req.session.username ? req.session.username : null;
+    res.locals.success = res.locals.success || [];
+    res.locals.error = res.locals.error || [];
+    
+    res.status(500).render('public/error', { 
+      title: 'Error',
+      error: 'Failed to load portfolio. Please try again later.' 
+    });
   }
 };
 

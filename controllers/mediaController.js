@@ -154,6 +154,7 @@ exports.apiList = async (req, res) => {
 
 // Serve image from database
 exports.serve = async (req, res) => {
+  const startTime = Date.now();
   try {
     const { id, size } = req.params;
     
@@ -163,12 +164,26 @@ exports.serve = async (req, res) => {
       return res.status(400).send('Invalid size parameter. Use: original, thumbnail, medium, or large');
     }
 
+    // Check if client has cached version (304 Not Modified) - do this BEFORE database query
+    const ifNoneMatch = req.headers['if-none-match'];
+    const etag = `"${id}-${size}"`;
+    if (ifNoneMatch === etag) {
+      return res.status(304).end();
+    }
+
     // Only select the specific size field we need to reduce memory usage
     // This is much more efficient than loading all sizes
     const sizeField = `${size}Data`;
     const selectFields = `mimeType ${sizeField}`;
     
-    const image = await Image.findById(id).select(selectFields);
+    // Add timeout to image query
+    const imageQuery = Image.findById(id).select(selectFields);
+    const image = await Promise.race([
+      imageQuery,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Image query timeout')), 10000)
+      )
+    ]);
     
     if (!image) {
       return res.status(404).send('Image not found');
@@ -184,20 +199,21 @@ exports.serve = async (req, res) => {
       'Content-Type': image.mimeType,
       'Content-Length': imageData.length,
       'Cache-Control': 'public, max-age=31536000, immutable', // Cache for 1 year, immutable
-      'ETag': `"${id}-${size}"`, // ETag for conditional requests
+      'ETag': etag, // ETag for conditional requests
       'Last-Modified': new Date().toUTCString()
     });
 
-    // Check if client has cached version (304 Not Modified)
-    const ifNoneMatch = req.headers['if-none-match'];
-    if (ifNoneMatch === `"${id}-${size}"`) {
-      return res.status(304).end();
+    const loadTime = Date.now() - startTime;
+    if (loadTime > 5000) {
+      console.warn(`Slow image load: ${id}/${size} took ${loadTime}ms`);
     }
 
     res.send(imageData);
   } catch (error) {
     console.error('Serve image error:', error);
-    res.status(500).send('Failed to serve image');
+    if (!res.headersSent) {
+      res.status(500).send('Failed to serve image');
+    }
   }
 };
 
