@@ -81,6 +81,39 @@ const withTimeout = (promise, timeoutMs = 10000) => {
   ]);
 };
 
+// Helper function to add image paths to lean documents (since virtuals don't work with lean)
+const addImagePaths = (image) => {
+  if (!image || !image._id) return image;
+  return {
+    ...image,
+    originalPath: `/api/images/${image._id}/original`,
+    thumbnailPath: `/api/images/${image._id}/thumbnail`,
+    mediumPath: `/api/images/${image._id}/medium`,
+    largePath: `/api/images/${image._id}/large`
+  };
+};
+
+// Helper to process arrays of items with images
+const processItemsWithImages = (items) => {
+  if (!items || !Array.isArray(items)) return items;
+  return items.map(item => {
+    const processed = { ...item };
+    if (item.featuredImage) {
+      processed.featuredImage = addImagePaths(item.featuredImage);
+    }
+    if (item.iconImage) {
+      processed.iconImage = addImagePaths(item.iconImage);
+    }
+    if (item.heroImage) {
+      processed.heroImage = addImagePaths(item.heroImage);
+    }
+    if (item.images && Array.isArray(item.images)) {
+      processed.images = item.images.map(img => addImagePaths(img));
+    }
+    return processed;
+  });
+};
+
 // Home page
 exports.home = async (req, res) => {
   const startTime = Date.now();
@@ -98,7 +131,7 @@ exports.home = async (req, res) => {
           .populate('iconImage')
           .sort({ displayOrder: 1 })
           .limit(6)
-          .lean(), // Use lean() for faster queries
+          .lean({ virtuals: true }), // Include virtuals for image paths
         8000
       ).catch(err => {
         console.error('Services query error:', err);
@@ -111,17 +144,17 @@ exports.home = async (req, res) => {
         })
           .populate({
             path: 'featuredImage',
-            select: 'largePath mediumPath thumbnailPath altText' // Only select needed fields
+            select: '_id altText' // Only select needed fields, virtuals will be included
           })
           .populate({
             path: 'images',
-            select: 'largePath mediumPath thumbnailPath altText',
+            select: '_id altText',
             options: { limit: 5 } // Limit images to first 5
           })
           .select('name slug shortDescription price featuredImage images displayOrder') // Only select needed fields
           .sort({ displayOrder: 1, createdAt: -1 })
           .limit(3)
-          .lean(),
+          .lean({ virtuals: true }), // Include virtuals for image paths
         8000
       ).catch(err => {
         console.error('Products query error:', err);
@@ -134,17 +167,17 @@ exports.home = async (req, res) => {
         })
           .populate({
             path: 'featuredImage',
-            select: 'largePath mediumPath thumbnailPath altText' // Only select needed fields
+            select: '_id altText' // Only select needed fields, virtuals will be included
           })
           .populate({
             path: 'images',
-            select: 'largePath mediumPath thumbnailPath altText',
+            select: '_id altText',
             options: { limit: 5 } // Limit images to first 5
           })
           .select('title slug shortDescription featuredImage images createdAt') // Only select needed fields
           .sort({ createdAt: -1 })
           .limit(4)
-          .lean(),
+          .lean({ virtuals: true }), // Include virtuals for image paths
         8000
       ).catch(err => {
         console.error('Projects query error:', err);
@@ -153,7 +186,7 @@ exports.home = async (req, res) => {
     ]);
 
     // Use default settings if query failed
-    const finalSettings = settings || {
+    let finalSettings = settings || {
       defaultMetaTitle: 'New Generation Pools',
       defaultMetaDescription: 'Premium Pool Services',
       defaultOpenGraphImage: null,
@@ -166,6 +199,18 @@ exports.home = async (req, res) => {
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }
     };
+
+    // Ensure settings image has paths (convert to plain object if needed)
+    if (finalSettings && finalSettings.defaultOpenGraphImage) {
+      if (finalSettings.defaultOpenGraphImage._id && !finalSettings.defaultOpenGraphImage.largePath) {
+        finalSettings.defaultOpenGraphImage = addImagePaths(finalSettings.defaultOpenGraphImage);
+      }
+    }
+
+    // Process images to add paths (since lean() doesn't include virtuals)
+    const processedServices = processItemsWithImages(services);
+    const processedProducts = processItemsWithImages(products);
+    const processedProjects = processItemsWithImages(recentProjects);
 
     const baseUrl = req.protocol + '://' + req.get('host');
     
@@ -189,9 +234,9 @@ exports.home = async (req, res) => {
       title: seo.title,
       description: seo.description,
       seo,
-      services: services || [],
-      products: products || [],
-      recentProjects: recentProjects || [],
+      services: processedServices || [],
+      products: processedProducts || [],
+      recentProjects: processedProjects || [],
       settings: finalSettings,
       baseUrl
     });
@@ -346,16 +391,16 @@ exports.products = async (req, res) => {
         })
           .populate({
             path: 'featuredImage',
-            select: 'largePath mediumPath thumbnailPath altText'
+            select: '_id altText' // Virtuals will be included with lean({ virtuals: true })
           })
           .populate({
             path: 'images',
-            select: 'largePath mediumPath thumbnailPath altText',
+            select: '_id altText',
             options: { limit: 3 } // Limit to 3 images per product for listing
           })
           .select('name slug shortDescription price featuredImage images displayOrder')
           .sort({ displayOrder: 1, createdAt: -1 })
-          .lean(),
+          .lean({ virtuals: true }), // Include virtuals for image paths
         15000 // Give more time for full listing
       ).catch(err => {
         console.error('Products query error:', err);
@@ -376,13 +421,16 @@ exports.products = async (req, res) => {
       }
     };
 
+    // Process images to add paths (since lean() doesn't include virtuals)
+    const processedProducts = processItemsWithImages(products);
+
     const baseUrl = req.protocol + '://' + req.get('host');
     console.log('Products page loaded in', Date.now() - startTime, 'ms');
     
     res.render('public/products', {
       title: 'Our Products - New Generation Pools',
       description: 'Browse our selection of premium pool products.',
-      products: products || [],
+      products: processedProducts || [],
       settings: finalSettings,
       baseUrl
     });
