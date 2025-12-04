@@ -171,17 +171,24 @@ exports.serve = async (req, res) => {
       return res.status(304).end();
     }
 
+    // Check MongoDB connection state before querying
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) {
+      console.error('MongoDB not connected. State:', mongoose.connection.readyState);
+      return res.status(503).send('Database temporarily unavailable');
+    }
+
     // Only select the specific size field we need to reduce memory usage
     // This is much more efficient than loading all sizes
     const sizeField = `${size}Data`;
     const selectFields = `mimeType ${sizeField}`;
     
-    // Add timeout to image query
-    const imageQuery = Image.findById(id).select(selectFields);
+    // Add timeout to image query (reduced to 8 seconds for faster failure)
+    const imageQuery = Image.findById(id).select(selectFields).lean();
     const image = await Promise.race([
       imageQuery,
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Image query timeout')), 10000)
+        setTimeout(() => reject(new Error('Image query timeout')), 8000)
       )
     ]);
     
@@ -204,13 +211,20 @@ exports.serve = async (req, res) => {
     });
 
     const loadTime = Date.now() - startTime;
-    if (loadTime > 5000) {
+    if (loadTime > 3000) {
       console.warn(`Slow image load: ${id}/${size} took ${loadTime}ms`);
     }
 
     res.send(imageData);
   } catch (error) {
-    console.error('Serve image error:', error);
+    const loadTime = Date.now() - startTime;
+    console.error(`Serve image error (${loadTime}ms):`, error.message);
+    
+    // Check if it's a timeout or connection issue
+    if (error.message.includes('timeout') || error.message.includes('ECONNREFUSED')) {
+      console.error('MongoDB connection issue detected');
+    }
+    
     if (!res.headersSent) {
       res.status(500).send('Failed to serve image');
     }
