@@ -29,10 +29,7 @@ if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
 }
 
 mongoose
-  .connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
+  .connect(mongoUri)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => {
     console.error('MongoDB connection error:', err)

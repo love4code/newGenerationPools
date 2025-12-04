@@ -71,64 +71,129 @@ const getSettingsWithTheme = async () => {
   return settings;
 };
 
+// Helper function to add timeout to promises
+const withTimeout = (promise, timeoutMs = 10000) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Query timeout')), timeoutMs)
+    )
+  ]);
+};
+
 // Home page
 exports.home = async (req, res) => {
+  const startTime = Date.now();
+  console.log('Home page request started');
+  
   try {
-    const settings = await getSettingsWithTheme();
-    
-    const services = await Service.find({ isActive: true })
-      .populate('iconImage')
-      .sort({ displayOrder: 1 })
-      .limit(6);
-    
-    // Get products for home page
-    const products = await Product.find({ 
-      status: 'published',
-      isActive: true 
-    })
-      .populate('featuredImage images')
-      .sort({ displayOrder: 1, createdAt: -1 })
-      .limit(3);
+    // Run all queries in parallel with timeouts
+    const [settings, services, products, recentProjects] = await Promise.all([
+      withTimeout(getSettingsWithTheme(), 5000).catch(err => {
+        console.error('Settings query error:', err);
+        return null; // Return null if settings fail
+      }),
+      withTimeout(
+        Service.find({ isActive: true })
+          .populate('iconImage')
+          .sort({ displayOrder: 1 })
+          .limit(6)
+          .lean(), // Use lean() for faster queries
+        8000
+      ).catch(err => {
+        console.error('Services query error:', err);
+        return []; // Return empty array if services fail
+      }),
+      withTimeout(
+        Product.find({ 
+          status: 'published',
+          isActive: true 
+        })
+          .populate('featuredImage images')
+          .sort({ displayOrder: 1, createdAt: -1 })
+          .limit(3)
+          .lean(),
+        8000
+      ).catch(err => {
+        console.error('Products query error:', err);
+        return []; // Return empty array if products fail
+      }),
+      withTimeout(
+        Project.find({ 
+          status: 'published',
+          showInPortfolio: true 
+        })
+          .populate('featuredImage images')
+          .sort({ createdAt: -1 })
+          .limit(4)
+          .lean(),
+        8000
+      ).catch(err => {
+        console.error('Projects query error:', err);
+        return []; // Return empty array if projects fail
+      })
+    ]);
 
-    // Get recent projects (different from featured, or more recent)
-    const recentProjects = await Project.find({ 
-      status: 'published',
-      showInPortfolio: true 
-    })
-      .populate('featuredImage images')
-      .sort({ createdAt: -1 })
-      .limit(4);
+    // Use default settings if query failed
+    const finalSettings = settings || {
+      defaultMetaTitle: 'New Generation Pools',
+      defaultMetaDescription: 'Premium Pool Services',
+      defaultOpenGraphImage: null,
+      theme: {
+        preset: 'default',
+        primaryColor: '#0d6efd',
+        secondaryColor: '#6c757d',
+        navbarColor: '#212529',
+        footerColor: '#2c3e50',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }
+    };
 
     const baseUrl = req.protocol + '://' + req.get('host');
     
     // Set SEO data with defaultOpenGraphImage (logo) as ogImage
     const seo = {
-      title: settings.defaultMetaTitle,
-      description: settings.defaultMetaDescription,
-      ogImage: settings.defaultOpenGraphImage && settings.defaultOpenGraphImage.largePath 
-        ? baseUrl + settings.defaultOpenGraphImage.largePath 
+      title: finalSettings.defaultMetaTitle || 'New Generation Pools',
+      description: finalSettings.defaultMetaDescription || 'Premium Pool Services',
+      ogImage: finalSettings.defaultOpenGraphImage && finalSettings.defaultOpenGraphImage.largePath 
+        ? baseUrl + finalSettings.defaultOpenGraphImage.largePath 
         : '',
       ogUrl: baseUrl + req.originalUrl,
       canonicalUrl: baseUrl + req.originalUrl
     };
     
-    // Debug: Log counts
+    // Debug: Log counts and timing
     console.log('Recent projects count:', recentProjects ? recentProjects.length : 0);
     console.log('Products count:', products ? products.length : 0);
+    console.log('Home page loaded in', Date.now() - startTime, 'ms');
     
     res.render('public/home', {
-      title: settings.defaultMetaTitle,
-      description: settings.defaultMetaDescription,
+      title: seo.title,
+      description: seo.description,
       seo,
-      services,
+      services: services || [],
       products: products || [],
       recentProjects: recentProjects || [],
-      settings,
+      settings: finalSettings,
       baseUrl
     });
   } catch (error) {
     console.error('Home page error:', error);
-    res.status(500).render('public/error', { error: 'Failed to load page' });
+    console.error('Error stack:', error.stack);
+    // Ensure locals are set for error page
+    if (!res.locals) {
+      res.locals = {};
+    }
+    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
+    res.locals.session = req.session || null;
+    res.locals.username = req.session && req.session.username ? req.session.username : null;
+    res.locals.success = res.locals.success || [];
+    res.locals.error = res.locals.error || [];
+    
+    res.status(500).render('public/error', { 
+      title: 'Error',
+      error: 'Failed to load page. Please try again later.' 
+    });
   }
 };
 
