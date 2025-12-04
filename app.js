@@ -90,6 +90,30 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
+// adding logging to see whats going on
+app.get('/', async (req, res, next) => {
+  const start = Date.now()
+  console.log('GET / start', { time: new Date().toISOString() })
+
+  try {
+    // Log each async step:
+    console.log('GET /: fetching recent projects')
+    const recentProjects = await Project.find().sort({ createdAt: -1 }).limit(4)
+
+    console.log('GET /: fetching products')
+    const products = await Product.find().limit(10)
+
+    // Any other DB calls? Log before/after them too.
+
+    console.log('GET /: rendering view')
+    res.render('home', { recentProjects, products })
+    console.log('GET / done in', Date.now() - start, 'ms')
+  } catch (err) {
+    console.error('GET / error', err)
+    next(err)
+  }
+})
+
 // Session configuration
 const isProduction = process.env.NODE_ENV === 'production'
 app.use(
