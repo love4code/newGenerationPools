@@ -44,7 +44,13 @@ const themePresets = {
 // Helper to get settings with theme
 const getSettingsWithTheme = async () => {
   try {
-    const settings = await GlobalSettings.getSettings();
+    // Add timeout to the getSettings call itself
+    const settings = await Promise.race([
+      GlobalSettings.getSettings(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('getSettings timeout')), 5000)
+      )
+    ]);
     
     // Populate defaultOpenGraphImage if it exists (with timeout to prevent hanging)
     if (settings.defaultOpenGraphImage) {
