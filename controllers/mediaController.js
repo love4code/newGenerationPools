@@ -157,41 +157,42 @@ exports.serve = async (req, res) => {
   try {
     const { id, size } = req.params;
     
-    // Only select the necessary fields to reduce memory usage
-    const image = await Image.findById(id).select('mimeType originalData thumbnailData mediumData largeData');
+    // Validate size parameter early
+    const validSizes = ['original', 'thumbnail', 'medium', 'large'];
+    if (!validSizes.includes(size)) {
+      return res.status(400).send('Invalid size parameter. Use: original, thumbnail, medium, or large');
+    }
+
+    // Only select the specific size field we need to reduce memory usage
+    // This is much more efficient than loading all sizes
+    const sizeField = `${size}Data`;
+    const selectFields = `mimeType ${sizeField}`;
+    
+    const image = await Image.findById(id).select(selectFields);
     
     if (!image) {
       return res.status(404).send('Image not found');
     }
 
-    let imageData;
-    switch (size) {
-      case 'original':
-        imageData = image.originalData;
-        break;
-      case 'thumbnail':
-        imageData = image.thumbnailData;
-        break;
-      case 'medium':
-        imageData = image.mediumData;
-        break;
-      case 'large':
-        imageData = image.largeData;
-        break;
-      default:
-        return res.status(400).send('Invalid size parameter. Use: original, thumbnail, medium, or large');
-    }
-
+    const imageData = image[sizeField];
     if (!imageData) {
       return res.status(404).send('Image data not found');
     }
 
-    // Set appropriate headers
+    // Set appropriate headers with aggressive caching
     res.set({
       'Content-Type': image.mimeType,
       'Content-Length': imageData.length,
-      'Cache-Control': 'public, max-age=31536000' // Cache for 1 year
+      'Cache-Control': 'public, max-age=31536000, immutable', // Cache for 1 year, immutable
+      'ETag': `"${id}-${size}"`, // ETag for conditional requests
+      'Last-Modified': new Date().toUTCString()
     });
+
+    // Check if client has cached version (304 Not Modified)
+    const ifNoneMatch = req.headers['if-none-match'];
+    if (ifNoneMatch === `"${id}-${size}"`) {
+      return res.status(304).end();
+    }
 
     res.send(imageData);
   } catch (error) {

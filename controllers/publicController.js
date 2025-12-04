@@ -149,7 +149,7 @@ exports.home = async (req, res) => {
           .populate({
             path: 'images',
             select: '_id altText',
-            options: { limit: 5 } // Limit images to first 5
+            options: { limit: 1 } // Only load first image for home page
           })
           .select('name slug shortDescription price featuredImage images displayOrder') // Only select needed fields
           .sort({ displayOrder: 1, createdAt: -1 })
@@ -172,7 +172,7 @@ exports.home = async (req, res) => {
           .populate({
             path: 'images',
             select: '_id altText',
-            options: { limit: 5 } // Limit images to first 5
+            options: { limit: 1 } // Only load first image for home page
           })
           .select('title slug shortDescription featuredImage images createdAt') // Only select needed fields
           .sort({ createdAt: -1 })
@@ -396,7 +396,7 @@ exports.products = async (req, res) => {
           .populate({
             path: 'images',
             select: '_id altText',
-            options: { limit: 3 } // Limit to 3 images per product for listing
+            options: { limit: 1 } // Only load first image for listing page
           })
           .select('name slug shortDescription price featuredImage images displayOrder')
           .sort({ displayOrder: 1, createdAt: -1 })
