@@ -37,9 +37,7 @@ const mongooseOptions = {
   minPoolSize: 1, // Reduced minimum pool size
   maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
   retryWrites: true,
-  retryReads: true,
-  heartbeatFrequencyMS: 10000, // Check connection health every 10 seconds
-  serverSelectionRetryMS: 5000 // Retry server selection every 5 seconds
+  retryReads: true
 }
 
 // Add connection event listeners for monitoring
@@ -47,7 +45,7 @@ mongoose.connection.on('connected', () => {
   console.log('MongoDB connected successfully')
 })
 
-mongoose.connection.on('error', (err) => {
+mongoose.connection.on('error', err => {
   console.error('MongoDB connection error:', err)
 })
 
