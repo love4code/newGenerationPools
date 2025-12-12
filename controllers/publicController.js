@@ -1,11 +1,11 @@
-const Project = require('../models/Project');
-const Service = require('../models/Service');
-const Product = require('../models/Product');
-const Image = require('../models/Image');
-const ContactMessage = require('../models/ContactMessage');
-const Order = require('../models/Order');
-const GlobalSettings = require('../models/GlobalSettings');
-const nodemailer = require('nodemailer');
+const Project = require('../models/Project')
+const Service = require('../models/Service')
+const Product = require('../models/Product')
+const Image = require('../models/Image')
+const ContactMessage = require('../models/ContactMessage')
+const Order = require('../models/Order')
+const GlobalSettings = require('../models/GlobalSettings')
+const nodemailer = require('nodemailer')
 
 // Theme presets (must match controller)
 const themePresets = {
@@ -39,7 +39,7 @@ const themePresets = {
     navbarColor: '#0f172a',
     footerColor: '#134e4a'
   }
-};
+}
 
 // Helper to get settings with theme
 const getSettingsWithTheme = async () => {
@@ -50,8 +50,8 @@ const getSettingsWithTheme = async () => {
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('getSettings timeout')), 5000)
       )
-    ]);
-    
+    ])
+
     // Populate defaultOpenGraphImage if it exists (with timeout to prevent hanging)
     if (settings.defaultOpenGraphImage) {
       try {
@@ -60,14 +60,17 @@ const getSettingsWithTheme = async () => {
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Populate timeout')), 3000)
           )
-        ]);
+        ])
       } catch (populateError) {
-        console.warn('Failed to populate defaultOpenGraphImage:', populateError.message);
+        console.warn(
+          'Failed to populate defaultOpenGraphImage:',
+          populateError.message
+        )
         // Continue without the image if populate fails
-        settings.defaultOpenGraphImage = null;
+        settings.defaultOpenGraphImage = null
       }
     }
-    
+
     if (!settings.theme) {
       settings.theme = {
         preset: 'default',
@@ -76,19 +79,23 @@ const getSettingsWithTheme = async () => {
         navbarColor: '#212529',
         footerColor: '#2c3e50',
         fontFamily: 'system-ui, -apple-system, sans-serif'
-      };
+      }
     } else {
       // Apply preset if not custom
-      if (settings.theme.preset && settings.theme.preset !== 'custom' && themePresets[settings.theme.preset]) {
+      if (
+        settings.theme.preset &&
+        settings.theme.preset !== 'custom' &&
+        themePresets[settings.theme.preset]
+      ) {
         settings.theme = {
           ...settings.theme,
           ...themePresets[settings.theme.preset]
-        };
+        }
       }
     }
-    return settings;
+    return settings
   } catch (error) {
-    console.error('getSettingsWithTheme error:', error);
+    console.error('getSettingsWithTheme error:', error)
     // Return default settings if query fails
     return {
       defaultMetaTitle: 'New Generation Pools',
@@ -102,9 +109,9 @@ const getSettingsWithTheme = async () => {
         footerColor: '#2c3e50',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }
-    };
+    }
   }
-};
+}
 
 // Helper function to add timeout to promises
 const withTimeout = (promise, timeoutMs = 10000) => {
@@ -113,53 +120,61 @@ const withTimeout = (promise, timeoutMs = 10000) => {
     new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Query timeout')), timeoutMs)
     )
-  ]);
-};
+  ])
+}
 
 // Helper function to add image paths to lean documents (since virtuals don't work with lean)
-const addImagePaths = (image) => {
-  if (!image || !image._id) return image;
+const addImagePaths = image => {
+  if (!image || !image._id) return image
   return {
     ...image,
     originalPath: `/api/images/${image._id}/original`,
     thumbnailPath: `/api/images/${image._id}/thumbnail`,
     mediumPath: `/api/images/${image._id}/medium`,
     largePath: `/api/images/${image._id}/large`
-  };
-};
+  }
+}
 
 // Helper to process arrays of items with images
-const processItemsWithImages = (items) => {
-  if (!items || !Array.isArray(items)) return items;
+const processItemsWithImages = items => {
+  if (!items || !Array.isArray(items)) return items
   return items.map(item => {
-    const processed = { ...item };
+    const processed = { ...item }
     if (item.featuredImage) {
-      processed.featuredImage = addImagePaths(item.featuredImage);
+      processed.featuredImage = addImagePaths(item.featuredImage)
     }
     if (item.iconImage) {
-      processed.iconImage = addImagePaths(item.iconImage);
+      processed.iconImage = addImagePaths(item.iconImage)
     }
     if (item.heroImage) {
-      processed.heroImage = addImagePaths(item.heroImage);
+      processed.heroImage = addImagePaths(item.heroImage)
     }
     if (item.images && Array.isArray(item.images)) {
-      processed.images = item.images.map(img => addImagePaths(img));
+      processed.images = item.images.map(img => addImagePaths(img))
     }
-    return processed;
-  });
-};
+    return processed
+  })
+}
+
+// Helper function to get recipient email addresses
+const getRecipientEmails = () => {
+  const primaryEmail = 'thenewgenerationpools@gmail.com'
+  const secondaryEmail = 'aquarianpoolandspa@gmail.com'
+  // Return both emails as comma-separated string
+  return `${primaryEmail}, ${secondaryEmail}`
+}
 
 // Home page
 exports.home = async (req, res) => {
-  const startTime = Date.now();
-  console.log('Home page request started');
-  
+  const startTime = Date.now()
+  console.log('Home page request started')
+
   try {
     // Run all queries in parallel with timeouts
     const [settings, services, products, recentProjects] = await Promise.all([
       withTimeout(getSettingsWithTheme(), 5000).catch(err => {
-        console.error('Settings query error:', err);
-        return null; // Return null if settings fail
+        console.error('Settings query error:', err)
+        return null // Return null if settings fail
       }),
       withTimeout(
         Service.find({ isActive: true })
@@ -169,13 +184,13 @@ exports.home = async (req, res) => {
           .lean({ virtuals: true }), // Include virtuals for image paths
         8000
       ).catch(err => {
-        console.error('Services query error:', err);
-        return []; // Return empty array if services fail
+        console.error('Services query error:', err)
+        return [] // Return empty array if services fail
       }),
       withTimeout(
-        Product.find({ 
+        Product.find({
           status: 'published',
-          isActive: true 
+          isActive: true
         })
           .populate({
             path: 'featuredImage',
@@ -186,19 +201,21 @@ exports.home = async (req, res) => {
             select: '_id altText',
             options: { limit: 1 } // Only load first image for home page
           })
-          .select('name slug shortDescription price featuredImage images displayOrder') // Only select needed fields
+          .select(
+            'name slug shortDescription price featuredImage images displayOrder'
+          ) // Only select needed fields
           .sort({ displayOrder: 1, createdAt: -1 })
           .limit(3)
           .lean({ virtuals: true }), // Include virtuals for image paths
         8000
       ).catch(err => {
-        console.error('Products query error:', err);
-        return []; // Return empty array if products fail
+        console.error('Products query error:', err)
+        return [] // Return empty array if products fail
       }),
       withTimeout(
-        Project.find({ 
+        Project.find({
           status: 'published',
-          showInPortfolio: true 
+          showInPortfolio: true
         })
           .populate({
             path: 'featuredImage',
@@ -215,10 +232,10 @@ exports.home = async (req, res) => {
           .lean({ virtuals: true }), // Include virtuals for image paths
         8000
       ).catch(err => {
-        console.error('Projects query error:', err);
-        return []; // Return empty array if projects fail
+        console.error('Projects query error:', err)
+        return [] // Return empty array if projects fail
       })
-    ]);
+    ])
 
     // Use default settings if query failed
     let finalSettings = settings || {
@@ -233,38 +250,49 @@ exports.home = async (req, res) => {
         footerColor: '#2c3e50',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }
-    };
+    }
 
     // Ensure settings image has paths (convert to plain object if needed)
     if (finalSettings && finalSettings.defaultOpenGraphImage) {
-      if (finalSettings.defaultOpenGraphImage._id && !finalSettings.defaultOpenGraphImage.largePath) {
-        finalSettings.defaultOpenGraphImage = addImagePaths(finalSettings.defaultOpenGraphImage);
+      if (
+        finalSettings.defaultOpenGraphImage._id &&
+        !finalSettings.defaultOpenGraphImage.largePath
+      ) {
+        finalSettings.defaultOpenGraphImage = addImagePaths(
+          finalSettings.defaultOpenGraphImage
+        )
       }
     }
 
     // Process images to add paths (since lean() doesn't include virtuals)
-    const processedServices = processItemsWithImages(services);
-    const processedProducts = processItemsWithImages(products);
-    const processedProjects = processItemsWithImages(recentProjects);
+    const processedServices = processItemsWithImages(services)
+    const processedProducts = processItemsWithImages(products)
+    const processedProjects = processItemsWithImages(recentProjects)
 
-    const baseUrl = req.protocol + '://' + req.get('host');
-    
+    const baseUrl = req.protocol + '://' + req.get('host')
+
     // Set SEO data with defaultOpenGraphImage (logo) as ogImage
     const seo = {
       title: finalSettings.defaultMetaTitle || 'New Generation Pools',
-      description: finalSettings.defaultMetaDescription || 'Premium Pool Services',
-      ogImage: finalSettings.defaultOpenGraphImage && finalSettings.defaultOpenGraphImage.largePath 
-        ? baseUrl + finalSettings.defaultOpenGraphImage.largePath 
-        : '',
+      description:
+        finalSettings.defaultMetaDescription || 'Premium Pool Services',
+      ogImage:
+        finalSettings.defaultOpenGraphImage &&
+        finalSettings.defaultOpenGraphImage.largePath
+          ? baseUrl + finalSettings.defaultOpenGraphImage.largePath
+          : '',
       ogUrl: baseUrl + req.originalUrl,
       canonicalUrl: baseUrl + req.originalUrl
-    };
-    
+    }
+
     // Debug: Log counts and timing
-    console.log('Recent projects count:', recentProjects ? recentProjects.length : 0);
-    console.log('Products count:', products ? products.length : 0);
-    console.log('Home page loaded in', Date.now() - startTime, 'ms');
-    
+    console.log(
+      'Recent projects count:',
+      recentProjects ? recentProjects.length : 0
+    )
+    console.log('Products count:', products ? products.length : 0)
+    console.log('Home page loaded in', Date.now() - startTime, 'ms')
+
     res.render('public/home', {
       title: seo.title,
       description: seo.description,
@@ -274,37 +302,40 @@ exports.home = async (req, res) => {
       recentProjects: processedProjects || [],
       settings: finalSettings,
       baseUrl
-    });
+    })
   } catch (error) {
-    console.error('Home page error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Home page error:', error)
+    console.error('Error stack:', error.stack)
     // Ensure locals are set for error page
     if (!res.locals) {
-      res.locals = {};
+      res.locals = {}
     }
-    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
-    res.locals.session = req.session || null;
-    res.locals.username = req.session && req.session.username ? req.session.username : null;
-    res.locals.success = res.locals.success || [];
-    res.locals.error = res.locals.error || [];
-    
-    res.status(500).render('public/error', { 
+    res.locals.isAuthenticated = !!(
+      req.session && req.session.isAuthenticated === true
+    )
+    res.locals.session = req.session || null
+    res.locals.username =
+      req.session && req.session.username ? req.session.username : null
+    res.locals.success = res.locals.success || []
+    res.locals.error = res.locals.error || []
+
+    res.status(500).render('public/error', {
       title: 'Error',
-      error: 'Failed to load page. Please try again later.' 
-    });
+      error: 'Failed to load page. Please try again later.'
+    })
   }
-};
+}
 
 // Services listing
 exports.services = async (req, res) => {
-  const startTime = Date.now();
-  console.log('Services page request started');
-  
+  const startTime = Date.now()
+  console.log('Services page request started')
+
   try {
     const [settings, services] = await Promise.all([
       withTimeout(getSettingsWithTheme(), 5000).catch(err => {
-        console.error('Settings query error:', err);
-        return null;
+        console.error('Settings query error:', err)
+        return null
       }),
       withTimeout(
         Service.find({ isActive: true })
@@ -321,10 +352,10 @@ exports.services = async (req, res) => {
           .lean({ virtuals: true }),
         10000
       ).catch(err => {
-        console.error('Services query error:', err);
-        return [];
+        console.error('Services query error:', err)
+        return []
       })
-    ]);
+    ])
 
     const finalSettings = settings || {
       defaultMetaTitle: 'New Generation Pools',
@@ -337,46 +368,50 @@ exports.services = async (req, res) => {
         footerColor: '#2c3e50',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }
-    };
+    }
 
     // Process images to add paths
-    const processedServices = processItemsWithImages(services);
+    const processedServices = processItemsWithImages(services)
 
-    const baseUrl = req.protocol + '://' + req.get('host');
-    console.log('Services page loaded in', Date.now() - startTime, 'ms');
-    
+    const baseUrl = req.protocol + '://' + req.get('host')
+    console.log('Services page loaded in', Date.now() - startTime, 'ms')
+
     res.render('public/services', {
       title: 'Our Services - New Generation Pools',
-      description: 'Explore our comprehensive pool services including design, installation, and maintenance.',
+      description:
+        'Explore our comprehensive pool services including design, installation, and maintenance.',
       services: processedServices || [],
       settings: finalSettings,
       baseUrl
-    });
+    })
   } catch (error) {
-    console.error('Services page error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Services page error:', error)
+    console.error('Error stack:', error.stack)
     // Ensure locals are set for error page
     if (!res.locals) {
-      res.locals = {};
+      res.locals = {}
     }
-    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
-    res.locals.session = req.session || null;
-    res.locals.username = req.session && req.session.username ? req.session.username : null;
-    res.locals.success = res.locals.success || [];
-    res.locals.error = res.locals.error || [];
-    
-    res.status(500).render('public/error', { 
+    res.locals.isAuthenticated = !!(
+      req.session && req.session.isAuthenticated === true
+    )
+    res.locals.session = req.session || null
+    res.locals.username =
+      req.session && req.session.username ? req.session.username : null
+    res.locals.success = res.locals.success || []
+    res.locals.error = res.locals.error || []
+
+    res.status(500).render('public/error', {
       title: 'Error',
-      error: 'Failed to load services. Please try again later.' 
-    });
+      error: 'Failed to load services. Please try again later.'
+    })
   }
-};
+}
 
 // Service detail
 exports.serviceDetail = async (req, res) => {
-  const startTime = Date.now();
-  console.log('Service detail request started:', req.params.slug);
-  
+  const startTime = Date.now()
+  console.log('Service detail request started:', req.params.slug)
+
   try {
     const service = await withTimeout(
       Service.findOne({ slug: req.params.slug, isActive: true })
@@ -391,74 +426,85 @@ exports.serviceDetail = async (req, res) => {
         .lean({ virtuals: true }),
       10000
     ).catch(err => {
-      console.error('Service detail query error:', err);
-      return null;
-    });
-    
+      console.error('Service detail query error:', err)
+      return null
+    })
+
     if (!service) {
       return res.status(404).render('public/404', {
         title: 'Service Not Found',
         description: 'The service you are looking for does not exist.'
-      });
+      })
     }
 
     // Process images to add paths
-    const processedService = processItemsWithImages([service])[0];
+    const processedService = processItemsWithImages([service])[0]
 
-    const baseUrl = req.protocol + '://' + req.get('host');
+    const baseUrl = req.protocol + '://' + req.get('host')
     const seo = {
-      title: processedService.seoTitle || `${processedService.name} - New Generation Pools`,
-      description: processedService.seoDescription || processedService.shortDescription || 'New Generation Pools Service',
+      title:
+        processedService.seoTitle ||
+        `${processedService.name} - New Generation Pools`,
+      description:
+        processedService.seoDescription ||
+        processedService.shortDescription ||
+        'New Generation Pools Service',
       keywords: processedService.seoKeywords || [],
-      canonicalUrl: processedService.seoCanonicalUrl || baseUrl + req.originalUrl,
-      ogImage: processedService.heroImage ? baseUrl + processedService.heroImage.largePath : '',
+      canonicalUrl:
+        processedService.seoCanonicalUrl || baseUrl + req.originalUrl,
+      ogImage: processedService.heroImage
+        ? baseUrl + processedService.heroImage.largePath
+        : '',
       ogUrl: baseUrl + req.originalUrl,
       index: processedService.seoIndex
-    };
+    }
 
-    console.log('Service detail loaded in', Date.now() - startTime, 'ms');
-    
+    console.log('Service detail loaded in', Date.now() - startTime, 'ms')
+
     res.render('public/service-detail', {
       service: processedService,
       seo,
       title: seo.title,
       baseUrl
-    });
+    })
   } catch (error) {
-    console.error('Service detail error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Service detail error:', error)
+    console.error('Error stack:', error.stack)
     // Ensure locals are set for error page
     if (!res.locals) {
-      res.locals = {};
+      res.locals = {}
     }
-    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
-    res.locals.session = req.session || null;
-    res.locals.username = req.session && req.session.username ? req.session.username : null;
-    res.locals.success = res.locals.success || [];
-    res.locals.error = res.locals.error || [];
-    
-    res.status(500).render('public/error', { 
+    res.locals.isAuthenticated = !!(
+      req.session && req.session.isAuthenticated === true
+    )
+    res.locals.session = req.session || null
+    res.locals.username =
+      req.session && req.session.username ? req.session.username : null
+    res.locals.success = res.locals.success || []
+    res.locals.error = res.locals.error || []
+
+    res.status(500).render('public/error', {
       title: 'Error',
-      error: 'Failed to load service. Please try again later.' 
-    });
+      error: 'Failed to load service. Please try again later.'
+    })
   }
-};
+}
 
 // Portfolio listing
 exports.portfolio = async (req, res) => {
-  const startTime = Date.now();
-  console.log('Portfolio page request started');
-  
+  const startTime = Date.now()
+  console.log('Portfolio page request started')
+
   try {
     const [settings, projects] = await Promise.all([
       withTimeout(getSettingsWithTheme(), 5000).catch(err => {
-        console.error('Settings query error:', err);
-        return null;
+        console.error('Settings query error:', err)
+        return null
       }),
       withTimeout(
-        Project.find({ 
+        Project.find({
           status: 'published',
-          showInPortfolio: true 
+          showInPortfolio: true
         })
           .populate({
             path: 'featuredImage',
@@ -469,10 +515,10 @@ exports.portfolio = async (req, res) => {
           .lean({ virtuals: true }),
         10000
       ).catch(err => {
-        console.error('Portfolio query error:', err);
-        return [];
+        console.error('Portfolio query error:', err)
+        return []
       })
-    ]);
+    ])
 
     const finalSettings = settings || {
       defaultMetaTitle: 'New Generation Pools',
@@ -485,46 +531,49 @@ exports.portfolio = async (req, res) => {
         footerColor: '#2c3e50',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }
-    };
+    }
 
     // Process images to add paths
-    const processedProjects = processItemsWithImages(projects);
+    const processedProjects = processItemsWithImages(projects)
 
-    const baseUrl = req.protocol + '://' + req.get('host');
-    console.log('Portfolio page loaded in', Date.now() - startTime, 'ms');
-    
+    const baseUrl = req.protocol + '://' + req.get('host')
+    console.log('Portfolio page loaded in', Date.now() - startTime, 'ms')
+
     res.render('public/portfolio', {
       title: 'Our Portfolio - New Generation Pools',
       description: 'View our portfolio of completed pool projects.',
       projects: processedProjects || [],
       settings: finalSettings,
       baseUrl
-    });
+    })
   } catch (error) {
-    console.error('Portfolio page error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Portfolio page error:', error)
+    console.error('Error stack:', error.stack)
     // Ensure locals are set for error page
     if (!res.locals) {
-      res.locals = {};
+      res.locals = {}
     }
-    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
-    res.locals.session = req.session || null;
-    res.locals.username = req.session && req.session.username ? req.session.username : null;
-    res.locals.success = res.locals.success || [];
-    res.locals.error = res.locals.error || [];
-    
-    res.status(500).render('public/error', { 
+    res.locals.isAuthenticated = !!(
+      req.session && req.session.isAuthenticated === true
+    )
+    res.locals.session = req.session || null
+    res.locals.username =
+      req.session && req.session.username ? req.session.username : null
+    res.locals.success = res.locals.success || []
+    res.locals.error = res.locals.error || []
+
+    res.status(500).render('public/error', {
       title: 'Error',
-      error: 'Failed to load portfolio. Please try again later.' 
-    });
+      error: 'Failed to load portfolio. Please try again later.'
+    })
   }
-};
+}
 
 // Project detail
 exports.projectDetail = async (req, res) => {
-  const startTime = Date.now();
-  console.log('Project detail request started:', req.params.slug);
-  
+  const startTime = Date.now()
+  console.log('Project detail request started:', req.params.slug)
+
   try {
     const project = await withTimeout(
       Project.findOne({ slug: req.params.slug, status: 'published' })
@@ -540,74 +589,85 @@ exports.projectDetail = async (req, res) => {
         .lean({ virtuals: true }),
       15000
     ).catch(err => {
-      console.error('Project detail query error:', err);
-      return null;
-    });
-    
+      console.error('Project detail query error:', err)
+      return null
+    })
+
     if (!project) {
       return res.status(404).render('public/404', {
         title: 'Project Not Found',
         description: 'The project you are looking for does not exist.'
-      });
+      })
     }
 
     // Process images to add paths
-    const processedProject = processItemsWithImages([project])[0];
+    const processedProject = processItemsWithImages([project])[0]
 
-    const baseUrl = req.protocol + '://' + req.get('host');
+    const baseUrl = req.protocol + '://' + req.get('host')
     const seo = {
-      title: processedProject.seoTitle || `${processedProject.title} - New Generation Pools`,
-      description: processedProject.seoDescription || processedProject.shortDescription || 'New Generation Pools Project',
+      title:
+        processedProject.seoTitle ||
+        `${processedProject.title} - New Generation Pools`,
+      description:
+        processedProject.seoDescription ||
+        processedProject.shortDescription ||
+        'New Generation Pools Project',
       keywords: processedProject.seoKeywords || [],
-      canonicalUrl: processedProject.seoCanonicalUrl || baseUrl + req.originalUrl,
-      ogImage: processedProject.featuredImage ? baseUrl + processedProject.featuredImage.largePath : '',
+      canonicalUrl:
+        processedProject.seoCanonicalUrl || baseUrl + req.originalUrl,
+      ogImage: processedProject.featuredImage
+        ? baseUrl + processedProject.featuredImage.largePath
+        : '',
       ogUrl: baseUrl + req.originalUrl,
       index: processedProject.seoIndex
-    };
+    }
 
-    console.log('Project detail loaded in', Date.now() - startTime, 'ms');
-    
+    console.log('Project detail loaded in', Date.now() - startTime, 'ms')
+
     res.render('public/project-detail', {
       project: processedProject,
       seo,
       title: seo.title,
       baseUrl
-    });
+    })
   } catch (error) {
-    console.error('Project detail error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Project detail error:', error)
+    console.error('Error stack:', error.stack)
     // Ensure locals are set for error page
     if (!res.locals) {
-      res.locals = {};
+      res.locals = {}
     }
-    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
-    res.locals.session = req.session || null;
-    res.locals.username = req.session && req.session.username ? req.session.username : null;
-    res.locals.success = res.locals.success || [];
-    res.locals.error = res.locals.error || [];
-    
-    res.status(500).render('public/error', { 
+    res.locals.isAuthenticated = !!(
+      req.session && req.session.isAuthenticated === true
+    )
+    res.locals.session = req.session || null
+    res.locals.username =
+      req.session && req.session.username ? req.session.username : null
+    res.locals.success = res.locals.success || []
+    res.locals.error = res.locals.error || []
+
+    res.status(500).render('public/error', {
       title: 'Error',
-      error: 'Failed to load project. Please try again later.' 
-    });
+      error: 'Failed to load project. Please try again later.'
+    })
   }
-};
+}
 
 // Products listing
 exports.products = async (req, res) => {
-  const startTime = Date.now();
-  console.log('Products page request started');
-  
+  const startTime = Date.now()
+  console.log('Products page request started')
+
   try {
     const [settings, products] = await Promise.all([
       withTimeout(getSettingsWithTheme(), 5000).catch(err => {
-        console.error('Settings query error:', err);
-        return null;
+        console.error('Settings query error:', err)
+        return null
       }),
       withTimeout(
-        Product.find({ 
+        Product.find({
           status: 'published',
-          isActive: true 
+          isActive: true
         })
           .populate({
             path: 'featuredImage',
@@ -618,15 +678,17 @@ exports.products = async (req, res) => {
             select: '_id altText',
             options: { limit: 1 } // Only load first image for listing page
           })
-          .select('name slug shortDescription price featuredImage images displayOrder')
+          .select(
+            'name slug shortDescription price featuredImage images displayOrder'
+          )
           .sort({ displayOrder: 1, createdAt: -1 })
           .lean({ virtuals: true }), // Include virtuals for image paths
         15000 // Give more time for full listing
       ).catch(err => {
-        console.error('Products query error:', err);
-        return [];
+        console.error('Products query error:', err)
+        return []
       })
-    ]);
+    ])
 
     const finalSettings = settings || {
       defaultMetaTitle: 'New Generation Pools',
@@ -639,49 +701,56 @@ exports.products = async (req, res) => {
         footerColor: '#2c3e50',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }
-    };
+    }
 
     // Process images to add paths (since lean() doesn't include virtuals)
-    const processedProducts = processItemsWithImages(products);
+    const processedProducts = processItemsWithImages(products)
 
-    const baseUrl = req.protocol + '://' + req.get('host');
-    console.log('Products page loaded in', Date.now() - startTime, 'ms');
-    
+    const baseUrl = req.protocol + '://' + req.get('host')
+    console.log('Products page loaded in', Date.now() - startTime, 'ms')
+
     res.render('public/products', {
       title: 'Our Products - New Generation Pools',
       description: 'Browse our selection of premium pool products.',
       products: processedProducts || [],
       settings: finalSettings,
       baseUrl
-    });
+    })
   } catch (error) {
-    console.error('Products page error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Products page error:', error)
+    console.error('Error stack:', error.stack)
     // Ensure locals are set for error page
     if (!res.locals) {
-      res.locals = {};
+      res.locals = {}
     }
-    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
-    res.locals.session = req.session || null;
-    res.locals.username = req.session && req.session.username ? req.session.username : null;
-    res.locals.success = res.locals.success || [];
-    res.locals.error = res.locals.error || [];
-    
-    res.status(500).render('public/error', { 
+    res.locals.isAuthenticated = !!(
+      req.session && req.session.isAuthenticated === true
+    )
+    res.locals.session = req.session || null
+    res.locals.username =
+      req.session && req.session.username ? req.session.username : null
+    res.locals.success = res.locals.success || []
+    res.locals.error = res.locals.error || []
+
+    res.status(500).render('public/error', {
       title: 'Error',
-      error: 'Failed to load products. Please try again later.' 
-    });
+      error: 'Failed to load products. Please try again later.'
+    })
   }
-};
+}
 
 // Product detail
 exports.productDetail = async (req, res) => {
-  const startTime = Date.now();
-  console.log('Product detail request started:', req.params.slug);
-  
+  const startTime = Date.now()
+  console.log('Product detail request started:', req.params.slug)
+
   try {
     const product = await withTimeout(
-      Product.findOne({ slug: req.params.slug, status: 'published', isActive: true })
+      Product.findOne({
+        slug: req.params.slug,
+        status: 'published',
+        isActive: true
+      })
         .populate({
           path: 'featuredImage',
           select: '_id altText'
@@ -694,36 +763,44 @@ exports.productDetail = async (req, res) => {
         .lean({ virtuals: true }),
       15000
     ).catch(err => {
-      console.error('Product detail query error:', err);
-      return null;
-    });
-    
+      console.error('Product detail query error:', err)
+      return null
+    })
+
     if (!product) {
       return res.status(404).render('public/404', {
         title: 'Product Not Found',
         description: 'The product you are looking for does not exist.'
-      });
+      })
     }
 
     // Process images to add paths
-    const processedProduct = processItemsWithImages([product])[0];
+    const processedProduct = processItemsWithImages([product])[0]
 
-    const baseUrl = req.protocol + '://' + req.get('host');
+    const baseUrl = req.protocol + '://' + req.get('host')
     const seo = {
-      title: processedProduct.seoTitle || `${processedProduct.name} - New Generation Pools`,
-      description: processedProduct.seoDescription || processedProduct.shortDescription || 'New Generation Pools Product',
+      title:
+        processedProduct.seoTitle ||
+        `${processedProduct.name} - New Generation Pools`,
+      description:
+        processedProduct.seoDescription ||
+        processedProduct.shortDescription ||
+        'New Generation Pools Product',
       keywords: processedProduct.seoKeywords || [],
-      canonicalUrl: processedProduct.seoCanonicalUrl || baseUrl + req.originalUrl,
-      ogImage: processedProduct.featuredImage ? baseUrl + processedProduct.featuredImage.largePath : '',
+      canonicalUrl:
+        processedProduct.seoCanonicalUrl || baseUrl + req.originalUrl,
+      ogImage: processedProduct.featuredImage
+        ? baseUrl + processedProduct.featuredImage.largePath
+        : '',
       ogUrl: baseUrl + req.originalUrl,
       index: processedProduct.seoIndex
-    };
+    }
 
     // Get flash messages
-    const error = req.flash('error');
-    const success = req.flash('success');
+    const error = req.flash('error')
+    const success = req.flash('success')
 
-    console.log('Product detail loaded in', Date.now() - startTime, 'ms');
+    console.log('Product detail loaded in', Date.now() - startTime, 'ms')
 
     res.render('public/product-detail', {
       product: processedProduct,
@@ -732,52 +809,67 @@ exports.productDetail = async (req, res) => {
       baseUrl,
       error,
       success
-    });
+    })
   } catch (error) {
-    console.error('Product detail error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Product detail error:', error)
+    console.error('Error stack:', error.stack)
     // Ensure locals are set for error page
     if (!res.locals) {
-      res.locals = {};
+      res.locals = {}
     }
-    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
-    res.locals.session = req.session || null;
-    res.locals.username = req.session && req.session.username ? req.session.username : null;
-    res.locals.success = res.locals.success || [];
-    res.locals.error = res.locals.error || [];
-    
-    res.status(500).render('public/error', { 
+    res.locals.isAuthenticated = !!(
+      req.session && req.session.isAuthenticated === true
+    )
+    res.locals.session = req.session || null
+    res.locals.username =
+      req.session && req.session.username ? req.session.username : null
+    res.locals.success = res.locals.success || []
+    res.locals.error = res.locals.error || []
+
+    res.status(500).render('public/error', {
       title: 'Error',
-      error: 'Failed to load product. Please try again later.' 
-    });
+      error: 'Failed to load product. Please try again later.'
+    })
   }
-};
+}
 
 // Handle product order submission
 exports.productOrderSubmit = async (req, res) => {
   try {
-    const { productId, productName, sizes, name, email, phone, address, city, state, zipCode, message } = req.body;
+    const {
+      productId,
+      productName,
+      sizes,
+      name,
+      email,
+      phone,
+      address,
+      city,
+      state,
+      zipCode,
+      message
+    } = req.body
 
     // Validate required fields
     if (!name || !email || !phone) {
-      req.flash('error', 'Name, email, and phone are required fields.');
-      return res.redirect(`/products/${req.params.slug}`);
+      req.flash('error', 'Name, email, and phone are required fields.')
+      return res.redirect(`/products/${req.params.slug}`)
     }
 
     // Validate product exists
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId)
     if (!product) {
-      req.flash('error', 'Product not found.');
-      return res.redirect(`/products/${req.params.slug}`);
+      req.flash('error', 'Product not found.')
+      return res.redirect(`/products/${req.params.slug}`)
     }
 
     // Process sizes array
-    let sizesArray = [];
+    let sizesArray = []
     if (sizes) {
       if (Array.isArray(sizes)) {
-        sizesArray = sizes.filter(s => s && s.trim()).map(s => s.trim());
+        sizesArray = sizes.filter(s => s && s.trim()).map(s => s.trim())
       } else if (typeof sizes === 'string' && sizes.trim()) {
-        sizesArray = [sizes.trim()];
+        sizesArray = [sizes.trim()]
       }
     }
 
@@ -795,12 +887,16 @@ exports.productOrderSubmit = async (req, res) => {
       zipCode: zipCode ? zipCode.trim() : '',
       message: message ? message.trim() : '',
       status: 'pending'
-    });
+    })
 
-    await order.save();
+    await order.save()
 
     // Send email if configured
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    if (
+      process.env.SMTP_HOST &&
+      process.env.SMTP_USER &&
+      process.env.SMTP_PASS
+    ) {
       try {
         const transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST,
@@ -810,13 +906,14 @@ exports.productOrderSubmit = async (req, res) => {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS
           }
-        });
+        })
 
-        const sizesText = sizesArray.length > 0 ? sizesArray.join(', ') : 'No sizes selected';
-        
+        const sizesText =
+          sizesArray.length > 0 ? sizesArray.join(', ') : 'No sizes selected'
+
         const mailOptions = {
           from: process.env.SMTP_USER,
-          to: process.env.CONTACT_EMAIL || process.env.SMTP_USER,
+          to: getRecipientEmails(),
           subject: `New Product Order: ${productName}`,
           html: `
             <h2>New Product Order</h2>
@@ -828,37 +925,53 @@ exports.productOrderSubmit = async (req, res) => {
             <p><strong>Email:</strong> ${email}</p>
             <p><strong>Phone:</strong> ${phone}</p>
             ${address ? `<p><strong>Address:</strong> ${address}</p>` : ''}
-            ${city || state || zipCode ? `<p><strong>City/State/Zip:</strong> ${city || ''} ${state || ''} ${zipCode || ''}</p>` : ''}
-            ${message ? `<p><strong>Message:</strong></p><p>${message}</p>` : ''}
+            ${
+              city || state || zipCode
+                ? `<p><strong>City/State/Zip:</strong> ${city || ''} ${
+                    state || ''
+                  } ${zipCode || ''}</p>`
+                : ''
+            }
+            ${
+              message ? `<p><strong>Message:</strong></p><p>${message}</p>` : ''
+            }
           `
-        };
+        }
 
-        await transporter.sendMail(mailOptions);
+        await transporter.sendMail(mailOptions)
       } catch (emailError) {
-        console.error('Error sending order email:', emailError);
+        console.error('Error sending order email:', emailError)
         // Don't fail the order if email fails
       }
     }
 
-    req.flash('success', 'Thank you for your order! We will contact you shortly to confirm the details.');
-    res.redirect(`/products/${req.params.slug}`);
+    req.flash(
+      'success',
+      'Thank you for your order! We will contact you shortly to confirm the details.'
+    )
+    res.redirect(`/products/${req.params.slug}`)
   } catch (error) {
-    console.error('Product order submit error:', error);
-    req.flash('error', 'Failed to submit order. Please try again or contact us directly.');
-    res.redirect(`/products/${req.params.slug}`);
+    console.error('Product order submit error:', error)
+    req.flash(
+      'error',
+      'Failed to submit order. Please try again or contact us directly.'
+    )
+    res.redirect(`/products/${req.params.slug}`)
   }
-};
+}
 
 // Contact page
 exports.contact = async (req, res) => {
-  const startTime = Date.now();
-  console.log('Contact page request started');
-  
+  const startTime = Date.now()
+  console.log('Contact page request started')
+
   try {
-    const settings = await withTimeout(getSettingsWithTheme(), 5000).catch(err => {
-      console.error('Settings query error:', err);
-      return null;
-    });
+    const settings = await withTimeout(getSettingsWithTheme(), 5000).catch(
+      err => {
+        console.error('Settings query error:', err)
+        return null
+      }
+    )
 
     const finalSettings = settings || {
       defaultMetaTitle: 'New Generation Pools',
@@ -871,48 +984,57 @@ exports.contact = async (req, res) => {
         footerColor: '#2c3e50',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }
-    };
+    }
 
     // Ensure settings image has paths
     if (finalSettings && finalSettings.defaultOpenGraphImage) {
-      if (finalSettings.defaultOpenGraphImage._id && !finalSettings.defaultOpenGraphImage.largePath) {
-        finalSettings.defaultOpenGraphImage = addImagePaths(finalSettings.defaultOpenGraphImage);
+      if (
+        finalSettings.defaultOpenGraphImage._id &&
+        !finalSettings.defaultOpenGraphImage.largePath
+      ) {
+        finalSettings.defaultOpenGraphImage = addImagePaths(
+          finalSettings.defaultOpenGraphImage
+        )
       }
     }
 
-    const baseUrl = req.protocol + '://' + req.get('host');
-    console.log('Contact page loaded in', Date.now() - startTime, 'ms');
-    
+    const baseUrl = req.protocol + '://' + req.get('host')
+    console.log('Contact page loaded in', Date.now() - startTime, 'ms')
+
     res.render('public/contact', {
       title: 'Contact Us - New Generation Pools',
-      description: 'Get in touch with New Generation Pools for all your pool needs.',
+      description:
+        'Get in touch with New Generation Pools for all your pool needs.',
       settings: finalSettings,
       baseUrl
-    });
+    })
   } catch (error) {
-    console.error('Contact page error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Contact page error:', error)
+    console.error('Error stack:', error.stack)
     // Ensure locals are set for error page
     if (!res.locals) {
-      res.locals = {};
+      res.locals = {}
     }
-    res.locals.isAuthenticated = !!(req.session && req.session.isAuthenticated === true);
-    res.locals.session = req.session || null;
-    res.locals.username = req.session && req.session.username ? req.session.username : null;
-    res.locals.success = res.locals.success || [];
-    res.locals.error = res.locals.error || [];
-    
-    res.status(500).render('public/error', { 
+    res.locals.isAuthenticated = !!(
+      req.session && req.session.isAuthenticated === true
+    )
+    res.locals.session = req.session || null
+    res.locals.username =
+      req.session && req.session.username ? req.session.username : null
+    res.locals.success = res.locals.success || []
+    res.locals.error = res.locals.error || []
+
+    res.status(500).render('public/error', {
       title: 'Error',
-      error: 'Failed to load contact page. Please try again later.' 
-    });
+      error: 'Failed to load contact page. Please try again later.'
+    })
   }
-};
+}
 
 // Handle home page contact form submission
 exports.homeContactSubmit = async (req, res) => {
   try {
-    const { name, email, phone, town, serviceType, message } = req.body;
+    const { name, email, phone, town, serviceType, message } = req.body
 
     // Save to database
     const contactMessage = new ContactMessage({
@@ -922,11 +1044,15 @@ exports.homeContactSubmit = async (req, res) => {
       town,
       serviceType,
       message: message || `Service Type: ${serviceType || 'Not specified'}`
-    });
-    await contactMessage.save();
+    })
+    await contactMessage.save()
 
     // Send email if configured
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    if (
+      process.env.SMTP_HOST &&
+      process.env.SMTP_USER &&
+      process.env.SMTP_PASS
+    ) {
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: process.env.SMTP_PORT || 587,
@@ -935,11 +1061,11 @@ exports.homeContactSubmit = async (req, res) => {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS
         }
-      });
+      })
 
       const mailOptions = {
         from: process.env.SMTP_USER,
-        to: process.env.CONTACT_EMAIL || process.env.SMTP_USER,
+        to: getRecipientEmails(),
         subject: `New Home Page Contact Form Submission from ${name}`,
         html: `
           <h2>New Home Page Contact Form Submission</h2>
@@ -947,27 +1073,32 @@ exports.homeContactSubmit = async (req, res) => {
           <p><strong>Email:</strong> ${email}</p>
           <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
           <p><strong>Town:</strong> ${town || 'Not provided'}</p>
-          <p><strong>Service Type:</strong> ${serviceType || 'Not specified'}</p>
+          <p><strong>Service Type:</strong> ${
+            serviceType || 'Not specified'
+          }</p>
           ${message ? `<p><strong>Message:</strong></p><p>${message}</p>` : ''}
         `
-      };
+      }
 
-      await transporter.sendMail(mailOptions);
+      await transporter.sendMail(mailOptions)
     }
 
-    req.flash('success', 'Thank you for your inquiry! We will get back to you soon.');
-    res.redirect('/');
+    req.flash(
+      'success',
+      'Thank you for your inquiry! We will get back to you soon.'
+    )
+    res.redirect('/')
   } catch (error) {
-    console.error('Home contact submit error:', error);
-    req.flash('error', 'Failed to send message. Please try again.');
-    res.redirect('/');
+    console.error('Home contact submit error:', error)
+    req.flash('error', 'Failed to send message. Please try again.')
+    res.redirect('/')
   }
-};
+}
 
 // Handle contact form submission
 exports.contactSubmit = async (req, res) => {
   try {
-    const { name, email, phone, message } = req.body;
+    const { name, email, phone, message } = req.body
 
     // Save to database
     const contactMessage = new ContactMessage({
@@ -975,11 +1106,15 @@ exports.contactSubmit = async (req, res) => {
       email,
       phone,
       message
-    });
-    await contactMessage.save();
+    })
+    await contactMessage.save()
 
     // Send email if configured
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    if (
+      process.env.SMTP_HOST &&
+      process.env.SMTP_USER &&
+      process.env.SMTP_PASS
+    ) {
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: process.env.SMTP_PORT || 587,
@@ -988,11 +1123,11 @@ exports.contactSubmit = async (req, res) => {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS
         }
-      });
+      })
 
       const mailOptions = {
         from: process.env.SMTP_USER,
-        to: process.env.CONTACT_EMAIL || process.env.SMTP_USER,
+        to: getRecipientEmails(),
         subject: `New Contact Form Submission from ${name}`,
         html: `
           <h2>New Contact Form Submission</h2>
@@ -1002,17 +1137,19 @@ exports.contactSubmit = async (req, res) => {
           <p><strong>Message:</strong></p>
           <p>${message}</p>
         `
-      };
+      }
 
-      await transporter.sendMail(mailOptions);
+      await transporter.sendMail(mailOptions)
     }
 
-    req.flash('success', 'Thank you for your message! We will get back to you soon.');
-    res.redirect('/contact');
+    req.flash(
+      'success',
+      'Thank you for your message! We will get back to you soon.'
+    )
+    res.redirect('/contact')
   } catch (error) {
-    console.error('Contact submit error:', error);
-    req.flash('error', 'Failed to send message. Please try again.');
-    res.redirect('/contact');
+    console.error('Contact submit error:', error)
+    req.flash('error', 'Failed to send message. Please try again.')
+    res.redirect('/contact')
   }
-};
-
+}
