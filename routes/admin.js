@@ -9,6 +9,7 @@ const mediaController = require('../controllers/mediaController')
 const settingsController = require('../controllers/settingsController')
 const customerController = require('../controllers/customerController')
 const saleController = require('../controllers/saleController')
+const contactController = require('../controllers/contactController')
 
 // All admin routes require authentication
 router.use(requireAuth)
@@ -67,6 +68,11 @@ router.get('/customers/:id', customerController.show)
 router.get('/customers/:id/edit', customerController.editForm)
 router.post('/customers/:id', customerController.update)
 router.post('/customers/:id/delete', customerController.delete)
+
+// Contact messages routes
+router.get('/contacts', contactController.list)
+router.get('/contacts/:id', contactController.show)
+router.post('/contacts/:id/delete', contactController.delete)
 
 // Settings routes
 router.get('/settings', settingsController.show)

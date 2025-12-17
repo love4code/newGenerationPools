@@ -1,5 +1,16 @@
 <%- include('../partials/admin-header') %>
 
+<style>
+  .list-group-item a:hover {
+    background-color: #f8f9fa;
+  }
+  .list-group-item a {
+    display: block;
+    padding: 0.75rem 1.25rem;
+    margin: -0.75rem -1.25rem;
+  }
+</style>
+
 <% if (typeof success !== 'undefined' && success.length > 0) { %>
   <div class="alert alert-success alert-dismissible fade show">
     <%= success[0] %>
@@ -44,8 +55,22 @@
   </div>
 </div>
 
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card text-white bg-danger">
+      <div class="card-body">
+        <h5 class="card-title">Unread Messages</h5>
+        <h2><%= messagesCount %></h2>
+        <a href="/admin/contacts" class="text-white text-decoration-none">
+          View All Contacts <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="row">
-  <div class="col-md-6">
+  <div class="col-md-4">
     <div class="card">
       <div class="card-header">
         <h5>Recent Projects</h5>
@@ -69,7 +94,52 @@
       </div>
     </div>
   </div>
-  <div class="col-md-6">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h5>Recent Contacts</h5>
+      </div>
+      <div class="card-body">
+        <% if (recentContacts && recentContacts.length > 0) { %>
+          <ul class="list-group">
+            <% recentContacts.forEach(contact => { %>
+              <li class="list-group-item">
+                <a href="/admin/contacts/<%= contact._id %>" class="text-decoration-none text-dark">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                      <strong><%= contact.name %></strong>
+                      <br>
+                      <small class="text-muted"><%= contact.email %></small>
+                      <% if (contact.serviceType) { %>
+                        <br>
+                        <span class="badge bg-info mt-1"><%= contact.serviceType %></span>
+                      <% } %>
+                    </div>
+                    <small class="text-muted">
+                      <%= new Date(contact.createdAt).toLocaleDateString() %>
+                    </small>
+                  </div>
+                  <% if (contact.message) { %>
+                    <p class="mb-0 mt-2 small text-muted">
+                      <%=
+                        contact.message.length > 60
+                          ? contact.message.substring(0, 60) + '...'
+                          : contact.message
+                      %>
+                    </p>
+                  <% } %>
+                </a>
+              </li>
+            <% }); %>
+          </ul>
+        <% } else { %>
+          <p class="text-muted">No contact messages yet.</p>
+        <% } %>
+        <a href="/admin/contacts" class="btn btn-primary mt-3">View All Contacts</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
     <div class="card">
       <div class="card-header">
         <h5>Recent Uploads</h5>
