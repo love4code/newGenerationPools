@@ -42,6 +42,7 @@ exports.create = async (req, res) => {
       description,
       sku,
       price,
+      costPrice,
       taxable,
       featuredImage,
       images,
@@ -89,6 +90,7 @@ exports.create = async (req, res) => {
       description: description.trim(),
       sku: sku ? sku.trim() : undefined,
       price: parseFloat(price) || 0,
+      costPrice: parseFloat(costPrice) || 0,
       taxable: taxable === 'on' || taxable === true,
       category: category || 'general',
       sizes: sizes
@@ -192,6 +194,7 @@ exports.update = async (req, res) => {
       description,
       sku,
       price,
+      costPrice,
       taxable,
       featuredImage,
       images,
@@ -213,6 +216,7 @@ exports.update = async (req, res) => {
       description,
       sku: sku ? sku.trim() : undefined,
       price: parseFloat(price) || 0,
+      costPrice: parseFloat(costPrice) || 0,
       taxable: taxable === 'on' || taxable === true,
       category: category || 'general',
       sizes: sizes
@@ -278,7 +282,7 @@ exports.apiSearch = async (req, res) => {
     }
 
     const products = await Product.find(searchQuery)
-      .select('_id name sku price taxable description')
+      .select('_id name sku price costPrice taxable description')
       .sort({ name: 1 })
       .limit(limit)
       .lean()
@@ -287,5 +291,58 @@ exports.apiSearch = async (req, res) => {
   } catch (error) {
     console.error('Product search API error:', error)
     res.status(500).json({ error: 'Failed to search products' })
+  }
+}
+
+// API: Create product (for custom products from sales page)
+exports.apiCreate = async (req, res) => {
+  try {
+    const { name, sku, description, price, costPrice, taxable } = req.body
+
+    // Validate required fields
+    if (!name || !price) {
+      return res.status(400).json({ error: 'Name and price are required' })
+    }
+
+    // Generate slug
+    let productSlug = slugify(name, { lower: true, strict: true })
+    let slugExists = await Product.findOne({ slug: productSlug })
+    let counter = 1
+    while (slugExists) {
+      productSlug = `${slugify(name, { lower: true, strict: true })}-${counter}`
+      slugExists = await Product.findOne({ slug: productSlug })
+      counter++
+    }
+
+    // Create product
+    const productData = {
+      name: name.trim(),
+      slug: productSlug,
+      description: description ? description.trim() : '',
+      sku: sku ? sku.trim() : undefined,
+      price: parseFloat(price) || 0,
+      costPrice: parseFloat(costPrice) || 0,
+      taxable: taxable === true || taxable === 'true',
+      status: 'published',
+      isActive: true,
+      displayOrder: 0
+    }
+
+    const product = new Product(productData)
+    await product.save()
+
+    // Return product data for use in line items
+    res.json({
+      _id: product._id,
+      name: product.name,
+      sku: product.sku,
+      description: product.description,
+      price: product.price,
+      costPrice: product.costPrice,
+      taxable: product.taxable
+    })
+  } catch (error) {
+    console.error('Product create API error:', error)
+    res.status(500).json({ error: error.message || 'Failed to create product' })
   }
 }

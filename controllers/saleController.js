@@ -1,6 +1,7 @@
 const Sale = require('../models/Sale')
 const Customer = require('../models/Customer')
 const Product = require('../models/Product')
+const GlobalSettings = require('../models/GlobalSettings')
 
 // List all sales with filters
 exports.list = async (req, res) => {
@@ -58,13 +59,18 @@ exports.createForm = async (req, res) => {
 
     const products = await Product.find({ isActive: true })
       .sort({ name: 1 })
-      .select('name sku price taxable description')
+      .select('name sku price costPrice taxable description')
+
+    // Get default tax rate from settings
+    const settings = await GlobalSettings.getSettings()
+    const defaultTaxRate = settings.salesTaxRate || 0.0625
 
     res.render('admin/sales/form', {
       title: `New Sale - ${customer.name}`,
       sale: null,
       customer,
-      products
+      products,
+      defaultTaxRate
     })
   } catch (error) {
     console.error('Create sale form error:', error)
@@ -91,11 +97,32 @@ exports.create = async (req, res) => {
       return res.redirect(`/admin/customers/${customerId}/sales/new`)
     }
 
+    // Get default tax rate from settings
+    const settings = await GlobalSettings.getSettings()
+    const defaultTaxRate = settings.salesTaxRate || 0.0625
+
     // Process line items
     const processedLineItems = []
     for (const item of lineItems) {
       if (!item.name || !item.unitPrice || !item.quantity) {
         continue // Skip invalid items
+      }
+
+      // Get cost price from product if productId exists
+      let unitCost = 0
+      if (item.productId) {
+        const product = await Product.findById(item.productId)
+        if (product) {
+          unitCost = product.costPrice || 0
+        }
+      }
+      // Allow manual override if provided
+      if (
+        item.unitCost !== undefined &&
+        item.unitCost !== null &&
+        item.unitCost !== ''
+      ) {
+        unitCost = parseFloat(item.unitCost) || 0
       }
 
       const lineItem = {
@@ -105,6 +132,7 @@ exports.create = async (req, res) => {
         description: item.description ? item.description.trim() : '',
         taxable: item.taxable === 'true' || item.taxable === true,
         unitPrice: Math.max(0, parseFloat(item.unitPrice) || 0),
+        unitCost: Math.max(0, unitCost),
         quantity: Math.max(1, parseInt(item.quantity) || 1)
       }
 
@@ -121,7 +149,7 @@ exports.create = async (req, res) => {
       saleDate: saleDate ? new Date(saleDate) : new Date(),
       status: status || 'open',
       paymentStatus: paymentStatus || 'unpaid',
-      taxRate: Math.max(0, Math.min(1, parseFloat(taxRate) || 0.0625)),
+      taxRate: Math.max(0, Math.min(1, parseFloat(taxRate) || defaultTaxRate)),
       notes: notes ? notes.trim() : '',
       lineItems: processedLineItems
     }
@@ -174,13 +202,18 @@ exports.editForm = async (req, res) => {
 
     const products = await Product.find({ isActive: true })
       .sort({ name: 1 })
-      .select('name sku price taxable description')
+      .select('name sku price costPrice taxable description')
+
+    // Get default tax rate from settings
+    const settings = await GlobalSettings.getSettings()
+    const defaultTaxRate = settings.salesTaxRate || 0.0625
 
     res.render('admin/sales/form', {
       title: `Edit Sale - ${sale.customer.name}`,
       sale,
       customer: sale.customer,
-      products
+      products,
+      defaultTaxRate
     })
   } catch (error) {
     console.error('Edit sale form error:', error)
@@ -206,11 +239,32 @@ exports.update = async (req, res) => {
       return res.redirect(`/admin/sales/${req.params.id}/edit`)
     }
 
+    // Get default tax rate from settings
+    const settings = await GlobalSettings.getSettings()
+    const defaultTaxRate = settings.salesTaxRate || 0.0625
+
     // Process line items
     const processedLineItems = []
     for (const item of lineItems) {
       if (!item.name || !item.unitPrice || !item.quantity) {
         continue
+      }
+
+      // Get cost price from product if productId exists
+      let unitCost = 0
+      if (item.productId) {
+        const product = await Product.findById(item.productId)
+        if (product) {
+          unitCost = product.costPrice || 0
+        }
+      }
+      // Allow manual override if provided
+      if (
+        item.unitCost !== undefined &&
+        item.unitCost !== null &&
+        item.unitCost !== ''
+      ) {
+        unitCost = parseFloat(item.unitCost) || 0
       }
 
       const lineItem = {
@@ -220,6 +274,7 @@ exports.update = async (req, res) => {
         description: item.description ? item.description.trim() : '',
         taxable: item.taxable === 'true' || item.taxable === true,
         unitPrice: Math.max(0, parseFloat(item.unitPrice) || 0),
+        unitCost: Math.max(0, unitCost),
         quantity: Math.max(1, parseInt(item.quantity) || 1)
       }
 
@@ -234,7 +289,10 @@ exports.update = async (req, res) => {
     sale.saleDate = saleDate ? new Date(saleDate) : sale.saleDate
     sale.status = status || sale.status
     sale.paymentStatus = paymentStatus || sale.paymentStatus
-    sale.taxRate = Math.max(0, Math.min(1, parseFloat(taxRate) || sale.taxRate))
+    sale.taxRate = Math.max(
+      0,
+      Math.min(1, parseFloat(taxRate) || defaultTaxRate)
+    )
     sale.notes = notes ? notes.trim() : ''
     sale.lineItems = processedLineItems
 

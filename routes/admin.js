@@ -40,6 +40,7 @@ router.get('/products/:id/edit', productController.editForm)
 router.post('/products/:id', productController.update)
 router.post('/products/:id/delete', productController.delete)
 router.get('/api/products', productController.apiSearch)
+router.post('/api/products', productController.apiCreate)
 
 // Media library routes
 router.get('/media', mediaController.list)

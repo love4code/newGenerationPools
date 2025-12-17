@@ -41,13 +41,20 @@
                 <input type="text" class="form-control" id="sku" name="sku" value="<%= product ? product.sku : (typeof formData !== 'undefined' && formData.sku ? formData.sku : '') %>" placeholder="Optional unique SKU">
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <div class="mb-3">
-                <label for="price" class="form-label">Price</label>
+                <label for="price" class="form-label">Sale Price</label>
                 <input type="number" step="0.01" class="form-control" id="price" name="price" value="<%= product ? product.price : (typeof formData !== 'undefined' && formData.price ? formData.price : '0') %>">
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+              <div class="mb-3">
+                <label for="costPrice" class="form-label">Cost Price</label>
+                <input type="number" step="0.01" class="form-control" id="costPrice" name="costPrice" value="<%= product ? product.costPrice : (typeof formData !== 'undefined' && formData.costPrice ? formData.costPrice : '0') %>">
+                <small class="text-muted">What you pay for this product</small>
+              </div>
+            </div>
+            <div class="col-md-3">
               <div class="mb-3">
                 <label for="category" class="form-label">Category</label>
                 <input type="text" class="form-control" id="category" name="category" value="<%= product ? product.category : (typeof formData !== 'undefined' && formData.category ? formData.category : 'general') %>">

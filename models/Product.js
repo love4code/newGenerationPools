@@ -30,6 +30,10 @@ const productSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  costPrice: {
+    type: Number,
+    default: 0
+  },
   taxable: {
     type: Boolean,
     default: true

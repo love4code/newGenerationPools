@@ -34,7 +34,15 @@ const saleLineItemSchema = new mongoose.Schema(
       required: true,
       min: 1
     },
+    unitCost: {
+      type: Number,
+      default: 0
+    },
     lineSubtotal: {
+      type: Number,
+      default: 0
+    },
+    lineCost: {
       type: Number,
       default: 0
     },
@@ -86,11 +94,19 @@ const saleSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  totalCost: {
+    type: Number,
+    default: 0
+  },
   taxTotal: {
     type: Number,
     default: 0
   },
   total: {
+    type: Number,
+    default: 0
+  },
+  totalProfit: {
     type: Number,
     default: 0
   },
@@ -113,12 +129,16 @@ saleSchema.pre('validate', function (next) {
 // Method to calculate all totals
 saleSchema.methods.calculateTotals = function () {
   let subtotal = 0
+  let totalCost = 0
   let taxTotal = 0
 
   // Calculate line item totals
   this.lineItems.forEach(item => {
     // Line subtotal
     item.lineSubtotal = item.unitPrice * item.quantity
+
+    // Line cost
+    item.lineCost = (item.unitCost || 0) * item.quantity
 
     // Line tax (only if taxable)
     item.lineTax = item.taxable ? item.lineSubtotal * this.taxRate : 0
@@ -128,13 +148,16 @@ saleSchema.methods.calculateTotals = function () {
 
     // Add to sale totals
     subtotal += item.lineSubtotal
+    totalCost += item.lineCost
     taxTotal += item.lineTax
   })
 
   // Round to 2 decimal places
   this.subtotal = Math.round(subtotal * 100) / 100
+  this.totalCost = Math.round(totalCost * 100) / 100
   this.taxTotal = Math.round(taxTotal * 100) / 100
   this.total = Math.round((subtotal + taxTotal) * 100) / 100
+  this.totalProfit = Math.round((this.total - this.totalCost) * 100) / 100
 
   // Update updatedAt
   this.updatedAt = Date.now()
