@@ -1,0 +1,123 @@
+<%- include('../../partials/admin-header') %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<% if (typeof error !== 'undefined' && error.length > 0) { %>
+  <div class="alert alert-danger alert-dismissible fade show">
+    <%= error[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Sales</h1>
+  <a href="/admin/customers" class="btn btn-primary">Select Customer to Create Sale</a>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="GET" action="/admin/sales" class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Customer</label>
+        <select class="form-select" name="customerId">
+          <option value="">All Customers</option>
+          <% if (customers) { %>
+            <% customers.forEach(customer => { %>
+              <option value="<%= customer._id %>" <%= filters && filters.customerId === customer._id.toString() ? 'selected' : '' %>><%= customer.name %></option>
+            <% }); %>
+          <% } %>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Status</label>
+        <select class="form-select" name="status">
+          <option value="">All Statuses</option>
+          <option value="draft" <%= filters && filters.status === 'draft' ? 'selected' : '' %>>Draft</option>
+          <option value="open" <%= filters && filters.status === 'open' ? 'selected' : '' %>>Open</option>
+          <option value="paid" <%= filters && filters.status === 'paid' ? 'selected' : '' %>>Paid</option>
+          <option value="cancelled" <%= filters && filters.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Payment Status</label>
+        <select class="form-select" name="paymentStatus">
+          <option value="">All Payment Statuses</option>
+          <option value="unpaid" <%= filters && filters.paymentStatus === 'unpaid' ? 'selected' : '' %>>Unpaid</option>
+          <option value="partial" <%= filters && filters.paymentStatus === 'partial' ? 'selected' : '' %>>Partial</option>
+          <option value="paid" <%= filters && filters.paymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Date From</label>
+        <input type="date" class="form-control" name="dateFrom" value="<%= filters && filters.dateFrom ? filters.dateFrom : '' %>">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Date To</label>
+        <input type="date" class="form-control" name="dateTo" value="<%= filters && filters.dateTo ? filters.dateTo : '' %>">
+      </div>
+      <div class="col-md-1">
+        <label class="form-label">&nbsp;</label>
+        <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Status</th>
+          <th>Payment Status</th>
+          <th>Total</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (sales && sales.length > 0) { %>
+          <% sales.forEach(sale => { %>
+            <tr>
+              <td><%= new Date(sale.saleDate).toLocaleDateString() %></td>
+              <td>
+                <% if (sale.customer) { %>
+                  <a href="/admin/customers/<%= sale.customer._id %>"><%= sale.customer.name %></a>
+                <% } else { %>
+                  Unknown
+                <% } %>
+              </td>
+              <td>
+                <span class="badge bg-<%= sale.status === 'paid' ? 'success' : sale.status === 'cancelled' ? 'danger' : sale.status === 'open' ? 'warning' : 'secondary' %>">
+                  <%= sale.status %>
+                </span>
+              </td>
+              <td>
+                <span class="badge bg-<%= sale.paymentStatus === 'paid' ? 'success' : sale.paymentStatus === 'partial' ? 'warning' : 'secondary' %>">
+                  <%= sale.paymentStatus %>
+                </span>
+              </td>
+              <td>$<%= sale.total.toFixed(2) %></td>
+              <td>
+                <a href="/admin/sales/<%= sale._id %>" class="btn btn-sm btn-outline-primary">View</a>
+                <a href="/admin/sales/<%= sale._id %>/edit" class="btn btn-sm btn-outline-secondary">Edit</a>
+              </td>
+            </tr>
+          <% }); %>
+        <% } else { %>
+          <tr>
+            <td colspan="6" class="text-center text-muted">No sales found.</td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../../partials/admin-footer') %>

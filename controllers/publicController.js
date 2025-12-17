@@ -120,7 +120,10 @@ const withTimeout = (promise, timeoutMs = 10000) => {
     new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Query timeout')), timeoutMs)
     )
-  ])
+  ]).catch(err => {
+    console.error('Query timeout or error:', err.message)
+    throw err
+  })
 }
 
 // Helper function to add image paths to lean documents (since virtuals don't work with lean)
@@ -184,7 +187,8 @@ exports.home = async (req, res) => {
           .lean({ virtuals: true }), // Include virtuals for image paths
         8000
       ).catch(err => {
-        console.error('Services query error:', err)
+        console.error('Services query error:', err.message || err)
+        console.error('Services query stack:', err.stack)
         return [] // Return empty array if services fail
       }),
       withTimeout(
@@ -209,7 +213,8 @@ exports.home = async (req, res) => {
           .lean({ virtuals: true }), // Include virtuals for image paths
         8000
       ).catch(err => {
-        console.error('Products query error:', err)
+        console.error('Products query error:', err.message || err)
+        console.error('Products query stack:', err.stack)
         return [] // Return empty array if products fail
       }),
       withTimeout(
@@ -232,7 +237,8 @@ exports.home = async (req, res) => {
           .lean({ virtuals: true }), // Include virtuals for image paths
         8000
       ).catch(err => {
-        console.error('Projects query error:', err)
+        console.error('Projects query error:', err.message || err)
+        console.error('Projects query stack:', err.stack)
         return [] // Return empty array if projects fail
       })
     ])
@@ -286,11 +292,32 @@ exports.home = async (req, res) => {
     }
 
     // Debug: Log counts and timing
+    console.log('=== Home Page Data ===')
+    console.log('Settings loaded:', !!settings)
+    console.log('Services count:', services ? services.length : 0)
+    console.log('Products count:', products ? products.length : 0)
     console.log(
       'Recent projects count:',
       recentProjects ? recentProjects.length : 0
     )
-    console.log('Products count:', products ? products.length : 0)
+    if (services && services.length > 0) {
+      console.log(
+        'Services:',
+        services.map(s => s.name || s._id)
+      )
+    }
+    if (products && products.length > 0) {
+      console.log(
+        'Products:',
+        products.map(p => p.name || p._id)
+      )
+    }
+    if (recentProjects && recentProjects.length > 0) {
+      console.log(
+        'Projects:',
+        recentProjects.map(p => p.title || p._id)
+      )
+    }
     console.log('Home page loaded in', Date.now() - startTime, 'ms')
 
     res.render('public/home', {

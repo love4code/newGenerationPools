@@ -1,0 +1,177 @@
+<%- include('../../partials/admin-header') %>
+
+<% if (typeof error !== 'undefined' && error.length > 0) { %>
+  <div class="alert alert-danger alert-dismissible fade show">
+    <%= error[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<h1 class="mb-4"><%= sale ? 'Edit' : 'New' %> Sale - <%= customer.name %></h1>
+
+<form method="POST" action="<%= sale ? `/admin/sales/${sale._id}` : `/admin/customers/${customer._id}/sales` %>" id="saleForm">
+  <input type="hidden" name="customerId" value="<%= customer._id %>">
+  
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-3">
+        <div class="card-header">Sale Information</div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="saleDate" class="form-label">Sale Date *</label>
+                <input type="date" class="form-control" id="saleDate" name="saleDate" value="<%= sale ? new Date(sale.saleDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0] %>" required>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                  <option value="draft" <%= sale && sale.status === 'draft' ? 'selected' : '' %>>Draft</option>
+                  <option value="open" <%= !sale || sale.status === 'open' ? 'selected' : '' %>>Open</option>
+                  <option value="paid" <%= sale && sale.status === 'paid' ? 'selected' : '' %>>Paid</option>
+                  <option value="cancelled" <%= sale && sale.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="paymentStatus" class="form-label">Payment Status</label>
+                <select class="form-select" id="paymentStatus" name="paymentStatus">
+                  <option value="unpaid" <%= !sale || sale.paymentStatus === 'unpaid' ? 'selected' : '' %>>Unpaid</option>
+                  <option value="partial" <%= sale && sale.paymentStatus === 'partial' ? 'selected' : '' %>>Partial</option>
+                  <option value="paid" <%= sale && sale.paymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="taxRate" class="form-label">Tax Rate (decimal, e.g., 0.0625 for 6.25%)</label>
+                <input type="number" step="0.0001" min="0" max="1" class="form-control" id="taxRate" name="taxRate" value="<%= sale ? sale.taxRate : '0.0625' %>" required>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="notes" class="form-label">Notes</label>
+            <textarea class="form-control" id="notes" name="notes" rows="3"><%= sale ? sale.notes : '' %></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">Line Items</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Add Product</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="productSearch" placeholder="Search products by name or SKU...">
+              <button type="button" class="btn btn-outline-primary" id="searchProductBtn">Search</button>
+            </div>
+            <div id="productSearchResults" class="mt-2" style="display: none;">
+              <div class="list-group" id="productResultsList"></div>
+            </div>
+          </div>
+
+          <div id="lineItemsContainer">
+            <table class="table table-bordered" id="lineItemsTable">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Unit Price</th>
+                  <th>Qty</th>
+                  <th>Taxable</th>
+                  <th>Line Total</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="lineItemsBody">
+                <% if (sale && sale.lineItems && sale.lineItems.length > 0) { %>
+                  <% sale.lineItems.forEach((item, index) => { %>
+                    <tr class="line-item-row" data-index="<%= index %>">
+                      <td>
+                        <input type="hidden" name="lineItems[<%= index %>][productId]" value="<%= item.productId || '' %>">
+                        <input type="hidden" name="lineItems[<%= index %>][name]" value="<%= item.name %>">
+                        <input type="hidden" name="lineItems[<%= index %>][sku]" value="<%= item.sku || '' %>">
+                        <input type="hidden" name="lineItems[<%= index %>][description]" value="<%= item.description || '' %>">
+                        <strong><%= item.name %></strong>
+                        <% if (item.sku) { %>
+                          <br><small class="text-muted">SKU: <%= item.sku %></small>
+                        <% } %>
+                      </td>
+                      <td>
+                        <input type="number" step="0.01" min="0" class="form-control form-control-sm unit-price" name="lineItems[<%= index %>][unitPrice]" value="<%= item.unitPrice %>" required>
+                      </td>
+                      <td>
+                        <input type="number" min="1" class="form-control form-control-sm quantity" name="lineItems[<%= index %>][quantity]" value="<%= item.quantity %>" required>
+                      </td>
+                      <td>
+                        <input type="checkbox" class="form-check-input taxable" name="lineItems[<%= index %>][taxable]" value="true" <%= item.taxable ? 'checked' : '' %>>
+                      </td>
+                      <td class="line-total">$0.00</td>
+                      <td>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-line-item">Remove</button>
+                      </td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr id="noItemsRow">
+                    <td colspan="6" class="text-center text-muted">No line items. Search and add products above.</td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-header">Totals</div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between mb-2">
+            <span>Subtotal:</span>
+            <strong id="previewSubtotal">$0.00</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span>Tax:</span>
+            <strong id="previewTaxTotal">$0.00</strong>
+          </div>
+          <hr>
+          <div class="d-flex justify-content-between">
+            <span><strong>Total:</strong></span>
+            <strong class="fs-5" id="previewTotal">$0.00</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <button type="submit" class="btn btn-primary">Save Sale</button>
+    <a href="<%= sale ? `/admin/sales/${sale._id}` : `/admin/customers/${customer._id}` %>" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+
+<script src="/js/admin-sales.js"></script>
+<script>
+  // Initialize with existing line items if editing
+  <% if (sale && sale.lineItems && sale.lineItems.length > 0) { %>
+    document.addEventListener('DOMContentLoaded', function() {
+      const taxRate = parseFloat(document.getElementById('taxRate').value) || 0.0625;
+      updateAllTotals(taxRate);
+    });
+  <% } %>
+</script>
+
+<%- include('../../partials/admin-footer') %>

@@ -1,0 +1,22 @@
+# Ignore EJS template files to prevent auto-formatting issues
+**/*.ejs
+views/**/*.ejs
+
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

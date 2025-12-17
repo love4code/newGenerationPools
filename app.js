@@ -75,6 +75,7 @@ mongoose
   .connect(mongoUri, mongooseOptions)
   .then(() => {
     console.log('Connected to MongoDB')
+    console.log('Database:', mongoose.connection.db.databaseName)
     console.log('MongoDB connection pool configured')
     console.log('Connection state:', mongoose.connection.readyState)
   })

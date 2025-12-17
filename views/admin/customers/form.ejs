@@ -1,0 +1,97 @@
+<%- include('../../partials/admin-header') %>
+
+<% if (typeof error !== 'undefined' && error.length > 0) { %>
+  <div class="alert alert-danger alert-dismissible fade show">
+    <%= error[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<% if (typeof success !== 'undefined' && success.length > 0) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <%= success[0] %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<h1 class="mb-4"><%= customer ? 'Edit' : 'Create' %> Customer</h1>
+
+<form method="POST" action="<%= customer ? `/admin/customers/${customer._id}` : '/admin/customers' %>">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="name" class="form-label">Name *</label>
+            <input type="text" class="form-control" id="name" name="name" value="<%= customer ? customer.name : (typeof formData !== 'undefined' && formData.name ? formData.name : '') %>" required>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" value="<%= customer ? customer.email : (typeof formData !== 'undefined' && formData.email ? formData.email : '') %>">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="phone" class="form-label">Phone</label>
+                <input type="tel" class="form-control" id="phone" name="phone" value="<%= customer ? customer.phone : (typeof formData !== 'undefined' && formData.phone ? formData.phone : '') %>">
+              </div>
+            </div>
+          </div>
+          <h5 class="mt-4 mb-3">Address</h5>
+          <div class="mb-3">
+            <label for="street" class="form-label">Street</label>
+            <input type="text" class="form-control" id="street" name="street" value="<%= customer && customer.address ? customer.address.street : (typeof formData !== 'undefined' && formData.street ? formData.street : '') %>">
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="city" class="form-label">City</label>
+                <input type="text" class="form-control" id="city" name="city" value="<%= customer && customer.address ? customer.address.city : (typeof formData !== 'undefined' && formData.city ? formData.city : '') %>">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="mb-3">
+                <label for="state" class="form-label">State</label>
+                <input type="text" class="form-control" id="state" name="state" value="<%= customer && customer.address ? customer.address.state : (typeof formData !== 'undefined' && formData.state ? formData.state : '') %>">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="mb-3">
+                <label for="zip" class="form-label">ZIP</label>
+                <input type="text" class="form-control" id="zip" name="zip" value="<%= customer && customer.address ? customer.address.zip : (typeof formData !== 'undefined' && formData.zip ? formData.zip : '') %>">
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="notes" class="form-label">Notes</label>
+            <textarea class="form-control" id="notes" name="notes" rows="4"><%= customer ? customer.notes : (typeof formData !== 'undefined' && formData.notes ? formData.notes : '') %></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-header">Settings</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" id="status" name="status">
+              <option value="active" <%= (customer && customer.status === 'active') || (typeof formData !== 'undefined' && formData.status === 'active') ? 'selected' : '' %>>Active</option>
+              <option value="inactive" <%= (customer && customer.status === 'inactive') || (typeof formData !== 'undefined' && formData.status === 'inactive') ? 'selected' : '' %>>Inactive</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <button type="submit" class="btn btn-primary">Save Customer</button>
+    <a href="/admin/customers" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+
+<%- include('../../partials/admin-footer') %>

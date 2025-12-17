@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const slugify = require('slugify');
+const mongoose = require('mongoose')
+const slugify = require('slugify')
 
 const productSchema = new mongoose.Schema({
   name: {
@@ -20,14 +20,26 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  sku: {
+    type: String,
+    trim: true,
+    sparse: true, // Allows multiple nulls but enforces uniqueness for non-null values
+    unique: true
+  },
   price: {
     type: Number,
     default: 0
   },
-  images: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Image'
-  }],
+  taxable: {
+    type: Boolean,
+    default: true
+  },
+  images: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Image'
+    }
+  ],
   featuredImage: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Image'
@@ -36,10 +48,12 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: 'general'
   },
-  sizes: [{
-    type: String,
-    trim: true
-  }],
+  sizes: [
+    {
+      type: String,
+      trim: true
+    }
+  ],
   status: {
     type: String,
     enum: ['draft', 'published'],
@@ -62,9 +76,11 @@ const productSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  seoKeywords: [{
-    type: String
-  }],
+  seoKeywords: [
+    {
+      type: String
+    }
+  ],
   seoCanonicalUrl: {
     type: String,
     trim: true
@@ -81,16 +97,15 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-});
+})
 
 // Auto-generate slug from name
-productSchema.pre('save', function(next) {
+productSchema.pre('save', function (next) {
   if (this.isModified('name') || this.isNew) {
-    this.slug = slugify(this.name, { lower: true, strict: true });
+    this.slug = slugify(this.name, { lower: true, strict: true })
   }
-  this.updatedAt = Date.now();
-  next();
-});
+  this.updatedAt = Date.now()
+  next()
+})
 
-module.exports = mongoose.model('Product', productSchema);
-
+module.exports = mongoose.model('Product', productSchema)
